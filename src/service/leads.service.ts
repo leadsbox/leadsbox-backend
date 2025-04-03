@@ -1,0 +1,38 @@
+// services/leadService.ts
+
+import { LeadModel } from "../models/leads.model";
+
+export class LeadService {
+  /**
+   * Updates or assigns a tag to a conversation (lead) identified by conversationId.
+   * @param conversationId - The unique identifier for the conversation.
+   * @param tag - The tag to assign (e.g., "New", "Interested", "Follow-Up").
+   */
+  public static async updateConversationTag(conversationId: string, tag: string): Promise<any> {
+    try {
+      // Find the lead record by conversationId and update the tag.
+      const updatedLead = await LeadModel.findOneAndUpdate(
+        { conversationId },
+        { tag },
+        { new: true }
+      );
+      return updatedLead;
+    } catch (error) {
+      console.error('Error in updateConversationTag:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves all leads (conversation records) from the database.
+   */
+  public static async getLeads(): Promise<any[]> {
+    try {
+      const leads = await LeadModel.find({});
+      return leads;
+    } catch (error) {
+      console.error('Error in getLeads:', error);
+      throw error;
+    }
+  }
+}
