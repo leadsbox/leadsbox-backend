@@ -3,6 +3,8 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import { MongoDBClient } from './config/db';  
+import leadsRoutes from './routes/leads.routes';
+import instagramRoutes from './routes/instagram.routes';
 
 const app = express();
 app.use(express.json());
@@ -11,6 +13,9 @@ app.use(cors());
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
+
+app.use('/api/leads', leadsRoutes);
+app.use('/api/instagram', instagramRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
