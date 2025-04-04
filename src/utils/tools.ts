@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { TokenPayload } from '../types';
 
 class Tools {
   private JWT_SECRET: string;
@@ -13,15 +12,6 @@ class Tools {
 
   public async createToken(payload: object): Promise<string> {
     return jwt.sign(payload, this.JWT_SECRET, { expiresIn: '30d' });
-  }
-
-  public async verifyToken(token: string): Promise<TokenPayload | null> {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-      return decoded as TokenPayload;
-    } catch (error) {
-      return null;
-    }
   }
 
   public decodeToken(token: string): object | null {
