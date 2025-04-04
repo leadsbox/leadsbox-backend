@@ -28,6 +28,11 @@ passport.use(
         const facebookId = profile.id;
         const firstName = profile.name?.givenName || '';
         const lastName = profile.name?.familyName || '';
+        console.log('Facebook profile:', profile);
+        console.log('Facebook ID:', facebookId);
+        console.log('Email:', email);
+        console.log('First Name:', firstName);
+        console.log('Last Name:', lastName);
 
         let user = await UserModel.findOne({ facebookId });
         if (!user) {

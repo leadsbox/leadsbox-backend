@@ -2,7 +2,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import cors from 'cors';
-import { MongoDBClient } from './config/db';  
+import { MongoDBClient } from './config/db';
+import passport from 'passport';
+import './config/passport'; 
 import leadsRoutes from './routes/leads.routes';
 import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
@@ -10,6 +12,7 @@ import authRoutes from './routes/auth.routes';
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(passport.initialize());
 
 app.get('/', (req, res) => {
   res.send('API is running...');
