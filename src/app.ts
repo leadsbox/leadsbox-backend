@@ -8,6 +8,7 @@ import './config/passport';
 import leadsRoutes from './routes/leads.routes';
 import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
+import telegramRoutes from './routes/telegram.routes';
 
 const app = express();
 app.use(express.json());
@@ -21,6 +22,8 @@ app.get('/', (req, res) => {
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/telegram', telegramRoutes);
+
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
   MongoDBClient.getInstance().then((client) => {
