@@ -1,4 +1,3 @@
-// src/routes/telegram.routes.ts
 import { Router } from 'express';
 import { TelegramCtrl } from '../controllers/telegram.controller';
 

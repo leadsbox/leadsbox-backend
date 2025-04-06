@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
 import crypto from 'crypto';
+import { Toolbox } from '../utils/tools';
 
 class TelegramAuthController {
   /**
@@ -35,9 +36,31 @@ class TelegramAuthController {
       return ResponseUtils.error(res, "Data is not from Telegram", StatusCode.UNAUTHORIZED);
     }
     
-    // If verified, you can generate a JWT token or simply return the data
-    // For now, we'll return the Telegram user data
-    return ResponseUtils.success(res, req.body, "Telegram login successful", StatusCode.OK);
+    try {
+      const payload = {
+        id,
+        first_name,
+        last_name,
+        username,
+        photo_url,
+        auth_date
+      };
+      const token = await Toolbox.createToken(payload);
+      console.log("Generated JWT Token:", token);
+      return ResponseUtils.success(
+        res,
+        { user: req.body, token },
+        "Telegram login successful",
+        StatusCode.OK
+      );
+    } catch (error: any) {
+      return ResponseUtils.error(
+        res,
+        "Error generating token",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message || error
+      );
+    }
   }
 }
 

@@ -1,6 +1,4 @@
-// services/leadService.ts
-
-import { LeadModel } from "../models/leads.model";
+import { LeadModel } from '../models/leads.model';
 
 export class LeadService {
   /**
@@ -11,11 +9,7 @@ export class LeadService {
   public static async updateConversationTag(conversationId: string, tag: string): Promise<any> {
     try {
       // Find the lead record by conversationId and update the tag.
-      const updatedLead = await LeadModel.findOneAndUpdate(
-        { conversationId },
-        { tag },
-        { new: true }
-      );
+      const updatedLead = await LeadModel.findOneAndUpdate({ conversationId }, { tag }, { new: true });
       return updatedLead;
     } catch (error) {
       console.error('Error in updateConversationTag:', error);
@@ -40,22 +34,19 @@ export class LeadService {
     try {
       let lead = await LeadModel.findOne({ conversationId: chatId });
       if (!lead) {
-        // Create a new lead if none exists
         lead = await LeadModel.create({
           conversationId: chatId,
-          userId: userId, // now storing the required userId
-          tag: "New",
+          userId: userId, 
+          tag: 'New',
           notes: message,
-          // Optionally add a field like 'source: "telegram"'
         });
       } else {
-        // Append to the lead's notes
         lead.notes = lead.notes ? `${lead.notes}\n${message}` : message;
         await lead.save();
       }
       return lead;
     } catch (error) {
-      console.error("Error storing Telegram lead:", error);
+      console.error('Error storing Telegram lead:', error);
       throw error;
     }
   }

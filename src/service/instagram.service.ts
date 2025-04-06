@@ -1,4 +1,3 @@
-// services/instagramService.ts
 import axios from 'axios';
 import dotenv from 'dotenv';
 
@@ -32,8 +31,8 @@ export class InstagramService {
 
   /**
    * Sends a reply message to a specified conversation.
-   * @param conversationId - The Instagram conversation ID.
-   * @param message - The message to send.
+   * @param conversationId 
+   * @param message 
    */
   public static async sendReply(conversationId: string, message: string): Promise<any> {
     try {

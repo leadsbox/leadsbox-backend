@@ -3,8 +3,8 @@ import { FollowUpModel } from '../models/followup.model';
 export class FollowUpService {
   /**
    * Schedules a follow-up for a given Telegram conversation.
-   * @param chatId Telegram chat ID.
-   * @param followUpTime Time (ISO string) for the follow-up.
+   * @param chatId 
+   * @param followUpTime 
    */
   public static async scheduleTelegramFollowUp(chatId: number | string, followUpTime: string): Promise<any> {
     try {

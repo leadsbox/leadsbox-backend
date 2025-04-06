@@ -1,4 +1,3 @@
-// src/controllers/telegram.controller.ts
 import { Request, Response } from 'express';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
@@ -14,20 +13,16 @@ class TelegramController {
     const update = req.body;
     console.log('Received Telegram update:', update);
 
-    // Example: Process message updates only
     if (update.message) {
       const chatId = update.message.chat.id;
       const text = update.message.text;
       const userId = update.message.from?.id; // Extract user ID from the sender info
 
-      // Ensure userId is defined
       if (!userId) {
         return ResponseUtils.error(res, 'User ID not found in message', StatusCode.BAD_REQUEST);
       }
-      // Store this message as a lead
       await LeadService.storeTelegramLead(chatId, userId.toString(), text);
 
-      // Optionally, auto-reply if message contains specific keywords (e.g., "price")
       if (text && text.toLowerCase().includes('price')) {
         try {
           await TelegramService.sendMessage(chatId, 'Thank you for your inquiry! Please visit https://example.com/pricing for details.');

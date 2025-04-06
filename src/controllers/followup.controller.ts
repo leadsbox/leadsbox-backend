@@ -1,4 +1,3 @@
-// src/controllers/telegramFollowUp.controller.ts
 import { Request, Response } from 'express';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
