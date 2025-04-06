@@ -30,14 +30,14 @@ export class LeadService {
     }
   }
 
-  public static async storeTelegramLead(chatId: number | string, userId: string, message: string): Promise<any> {
+  public static async storeTelegramLead(chatId: number | string, userId: string, message: string, tag: string): Promise<any> {
     try {
       let lead = await LeadModel.findOne({ conversationId: chatId });
       if (!lead) {
         lead = await LeadModel.create({
           conversationId: chatId,
           userId: userId, 
-          tag: 'New',
+          tag,
           notes: message,
         });
       } else {
