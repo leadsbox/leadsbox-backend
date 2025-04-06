@@ -1,8 +1,13 @@
+export interface ITransaction {
+  tag: string;
+  notes: string;
+  createdAt?: Date;
+}
+
 export interface ILead {
   conversationId: string;
-  tag: string;
-  notes?: string;
-  userId: string; 
+  userId: string;
+  transactions: ITransaction[];
 }
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };

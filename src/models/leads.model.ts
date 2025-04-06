@@ -1,14 +1,15 @@
+// src/models/lead.model.ts
 import { mongoose, Schema } from '../config/db';
 import { ILead, DefaultDate } from '../types/leads';
+import { TransactionSchema } from './transaction.model';
 
 export type LeadDocument = ILead & mongoose.Document;
 
 const LeadSchema = new Schema<LeadDocument>(
   {
-    conversationId: { type: String, required: true, unique: true },
-    tag: { type: String, required: true, default: 'New' },
-    notes: { type: String },
+    conversationId: { type: String, required: true },
     userId: { type: String, ref: 'User', required: true },
+    transactions: { type: [TransactionSchema], default: [] }
   },
   {
     timestamps: true,

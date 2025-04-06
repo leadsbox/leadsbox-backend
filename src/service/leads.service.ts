@@ -32,21 +32,36 @@ export class LeadService {
 
   public static async storeTelegramLead(chatId: number | string, userId: string, message: string, tag: string): Promise<any> {
     try {
+      const newTransaction = {
+        tag,
+        notes: message,
+        createdAt: new Date(),
+      };
+
       let lead = await LeadModel.findOne({ conversationId: chatId });
       if (!lead) {
         lead = await LeadModel.create({
           conversationId: chatId,
-          userId: userId, 
-          tag,
-          notes: message,
+          userId: userId,
+          transactions: [newTransaction],
         });
       } else {
-        lead.notes = lead.notes ? `${lead.notes}\n${message}` : message;
+        lead.transactions.push(newTransaction);
         await lead.save();
       }
       return lead;
     } catch (error) {
       console.error('Error storing Telegram lead:', error);
+      throw error;
+    }
+  }
+
+  public static async getAllLeads(): Promise<any> {
+    try {
+      const leads = await LeadModel.find({}).sort({ createdAt: -1 }).lean();
+      return leads;
+    } catch (error) {
+      console.error("Error fetching leads:", error);
       throw error;
     }
   }
