@@ -35,4 +35,28 @@ export class LeadService {
       throw error;
     }
   }
+
+  public static async storeTelegramLead(chatId: number | string, userId: string, message: string): Promise<any> {
+    try {
+      let lead = await LeadModel.findOne({ conversationId: chatId });
+      if (!lead) {
+        // Create a new lead if none exists
+        lead = await LeadModel.create({
+          conversationId: chatId,
+          userId: userId, // now storing the required userId
+          tag: "New",
+          notes: message,
+          // Optionally add a field like 'source: "telegram"'
+        });
+      } else {
+        // Append to the lead's notes
+        lead.notes = lead.notes ? `${lead.notes}\n${message}` : message;
+        await lead.save();
+      }
+      return lead;
+    } catch (error) {
+      console.error("Error storing Telegram lead:", error);
+      throw error;
+    }
+  }
 }

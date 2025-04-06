@@ -1,8 +1,8 @@
-export interface ILead {
+export interface IFollowUp {
   conversationId: string;
-  tag: string;
+  followUpTime: Date;
+  status: string; 
   notes?: string;
-  userId: string; 
 }
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };

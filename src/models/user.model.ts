@@ -1,5 +1,3 @@
-// models/user.model.ts
-import { CryptoUtils } from '../utils/crypto';
 import { mongoose } from '../config/db';
 import { IUser, DefaultDate } from '../types/user';
 
