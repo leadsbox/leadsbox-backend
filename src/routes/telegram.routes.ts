@@ -7,4 +7,5 @@ router.post('/webhook', TelegramCtrl.handleUpdate.bind(TelegramCtrl));
 
 router.post('/reply', TelegramCtrl.sendReply.bind(TelegramCtrl));
 
+router.get('/leads', TelegramCtrl.getAllLeads.bind(TelegramCtrl));
 export default router;
