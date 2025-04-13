@@ -65,4 +65,14 @@ export class LeadService {
       throw error;
     }
   }
+
+  public static async getLeadsByUserId(userId: string): Promise<any[]> {
+    try {
+      const leads = await LeadModel.find({ userId }).sort({ createdAt: -1 }).lean();
+      return leads;
+    } catch (error) {
+      console.error('Error fetching leads for user:', error);
+      throw error;
+    }
+  }
 }

@@ -111,7 +111,23 @@ class TelegramController {
 
   public async getAllLeads(req: Request, res: Response): Promise<void> {
     const leads = await LeadService.getAllLeads();
-    return ResponseUtils.success(res, { leads }, "Leads fetched successfully", StatusCode.OK);
+    return ResponseUtils.success(res, { leads }, 'Leads fetched successfully', StatusCode.OK);
+  }
+
+  public async getLeadsByUserId(req: Request, res: Response): Promise<void> {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return ResponseUtils.error(res, 'userId is required in the request body', StatusCode.BAD_REQUEST);
+    }
+
+    try {
+      const leads = await LeadService.getLeadsByUserId(userId);
+      return ResponseUtils.success(res, { leads }, 'Leads fetched successfully', StatusCode.OK);
+    } catch (error) {
+      console.error('Error fetching user leads:', error);
+      return ResponseUtils.error(res, 'Failed to fetch user leads', StatusCode.INTERNAL_SERVER_ERROR);
+    }
   }
 }
 
