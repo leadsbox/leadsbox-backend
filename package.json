@@ -10,7 +10,8 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:ci": "jest --runInBand",
-    "test:single": "yarn node --experimental-vm-modules $(yarn bin jest) $1"
+    "test:single": "yarn node --experimental-vm-modules $(yarn bin jest) $1",
+    "setWebhook": "node src/utils/telegramwebhook.js"
   },
   "dependencies": {
     "@types/express": "^5.0.1",
