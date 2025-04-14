@@ -11,6 +11,6 @@ router.get('/facebook/callback', passport.authenticate('facebook', { session: fa
   FacebookAuthCtrl.facebookCallback(req, res);
 });
 
-router.post('/telegram/sign-in', TelegramAuthCtrl.signIn.bind(TelegramAuthCtrl));
+router.get('/telegram/sign-in', TelegramAuthCtrl.signIn.bind(TelegramAuthCtrl));
 
 export default router;
