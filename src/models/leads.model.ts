@@ -1,4 +1,3 @@
-// src/models/lead.model.ts
 import { mongoose, Schema } from '../config/db';
 import { ILead, DefaultDate } from '../types/leads';
 import { TransactionSchema } from './transaction.model';

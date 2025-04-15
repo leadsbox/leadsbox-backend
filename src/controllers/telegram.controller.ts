@@ -88,6 +88,15 @@ class TelegramController {
           console.error('Auto-reply error:', error);
         }
       }
+
+      if (text.startsWith('/start')) {
+        await TelegramService.sendMessage(
+          chatId,
+          'Welcome to Leadsbox! I’m here to help you with your inquiries. How can I assist you today?'
+        );
+        // Optionally, initialize or update a user session here.
+        return ResponseUtils.success(res, update, 'Welcome message sent', StatusCode.OK);
+      }
     }
 
     return ResponseUtils.success(res, update, 'Update processed', StatusCode.OK);
