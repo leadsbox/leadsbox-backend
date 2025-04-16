@@ -56,24 +56,24 @@ class TelegramController {
    * Handles incoming webhook updates from Telegram.
    * Parses the update, tags the conversation, stores the lead, and triggers auto-reply if needed.
    */
-  public async handleUpdate(req: Request, res: Response): Promise<void> {
-    const update = req.body;
-    console.log('Received Telegram update:', update);
+ public async handleUpdate(req: Request, res: Response): Promise<void> {
+  const update = req.body;
+  console.log('Received Telegram update:', update);
 
-    if (update.message) {
-      const chatId = update.message.chat.id;
-      const text = update.message.text;
-      const userId = update.message.from?.id;
+  if (update.message) {
+    const chatId = update.message.chat.id;
+    const text = update.message.text;
+    const userId = update.message.from?.id;
 
-      if (!userId) {
-        return ResponseUtils.error(res, 'User ID not found in message', StatusCode.BAD_REQUEST);
-      }
+    if (!userId) {
+      return ResponseUtils.error(res, 'User ID not found in message', StatusCode.BAD_REQUEST);
+    }
 
+    if (text) {
       // Determine the tag based on the message text
       const tag = this.tagConversation(text);
       console.log('Determined tag:', tag);
 
-      // Store the lead (assuming LeadService.storeTelegramLead accepts chatId, userId, message, and tag)
       try {
         await LeadService.storeTelegramLead(chatId, userId.toString(), text, tag);
       } catch (error) {
@@ -81,7 +81,7 @@ class TelegramController {
       }
 
       // Optionally trigger an auto-reply if the message contains the keyword "price"
-      if (text && text.toLowerCase().includes('price')) {
+      if (text.toLowerCase().includes('price')) {
         try {
           await TelegramService.sendMessage(chatId, 'Thank you for your inquiry! Please visit https://example.com/pricing for details.');
         } catch (error) {
@@ -97,10 +97,15 @@ class TelegramController {
         // Optionally, initialize or update a user session here.
         return ResponseUtils.success(res, update, 'Welcome message sent', StatusCode.OK);
       }
+    } else {
+      // Optionally handle non-text messages (e.g. new member notifications)
+      console.log('No text found in the message; likely a non-text update.');
     }
-
-    return ResponseUtils.success(res, update, 'Update processed', StatusCode.OK);
   }
+
+  return ResponseUtils.success(res, update, 'Update processed', StatusCode.OK);
+}
+
 
   /**
    * Sends a reply to a specific Telegram chat.
