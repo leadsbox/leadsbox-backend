@@ -1,4 +1,4 @@
-import { LeadModel } from '../models/leads.model';
+import { LeadModel } from "../models/leads.model";
 
 export class LeadService {
   /**
