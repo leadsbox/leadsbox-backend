@@ -1,6 +1,5 @@
-// import { UserDocument, UserModel } from '../models/user.schema';
-// import { BookDocument, BookModel } from '../models/books.schema';
 import { ClientSession, Model, mongoose } from '../config/db';
+import { UserDocument, UserModel } from '../models/user.model';
 import { DbOptions, DbResponse } from '../types/mongo';
 
 class MongoDBService<T extends mongoose.Document> {
@@ -128,5 +127,5 @@ class MongoDBService<T extends mongoose.Document> {
   }
 }
 
-// export const mongoUserService = new MongoDBService<UserDocument>(UserModel);
+export const mongoUserService = new MongoDBService<UserDocument>(UserModel);
 // export const mongoBookService = new MongoDBService<BookDocument>(BookModel);

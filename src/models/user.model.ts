@@ -6,7 +6,7 @@ export type UserDocument = IUser & mongoose.Document;
 const userSchema = new mongoose.Schema<UserDocument>(
   {
     userId: { type: String, required: true, unique: true },
-    username: { type: String, required: true, unique: true },
+    username: { type: String, required: false, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     token: { type: String, required: false },

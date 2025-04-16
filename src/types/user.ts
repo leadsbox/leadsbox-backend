@@ -8,3 +8,10 @@ export interface IUser {
 }
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };
+
+export interface TokenPayload {
+  userId: string;
+  email?: string;
+  username?: string;
+  exp?: number;
+}

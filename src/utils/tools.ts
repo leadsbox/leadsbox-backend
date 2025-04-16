@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { TokenPayload } from '../types';
 
 class Tools {
   private JWT_SECRET: string;
@@ -36,6 +37,15 @@ class Tools {
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+  }
+
+  public async verifyToken(token: string): Promise<TokenPayload | null> {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+      return decoded as TokenPayload;
+    } catch (error) {
+      return null;
+    }
   }
 }
 
