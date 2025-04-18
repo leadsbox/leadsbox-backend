@@ -1,15 +1,17 @@
-import axios from 'axios';
-import dotenv from 'dotenv';
+import axios from "axios";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-const INSTAGRAM_API_VERSION = process.env.INSTAGRAM_API_VERSION || 'v14.0';
+const INSTAGRAM_API_VERSION = process.env.INSTAGRAM_API_VERSION || "v14.0";
 const BASE_URL = `https://graph.facebook.com/${INSTAGRAM_API_VERSION}`;
 const PAGE_ID = process.env.INSTAGRAM_PAGE_ID;
 const ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN;
 
 if (!PAGE_ID || !ACCESS_TOKEN) {
-  throw new Error('INSTAGRAM_PAGE_ID and IG_ACCESS_TOKEN must be set in the environment variables.');
+  throw new Error(
+    "INSTAGRAM_PAGE_ID and IG_ACCESS_TOKEN must be set in the environment variables.",
+  );
 }
 
 export class InstagramService {
@@ -24,17 +26,20 @@ export class InstagramService {
       });
       return response.data;
     } catch (error) {
-      console.error('Error in fetchConversations:', error);
+      console.error("Error in fetchConversations:", error);
       throw error;
     }
   }
 
   /**
    * Sends a reply message to a specified conversation.
-   * @param conversationId 
-   * @param message 
+   * @param conversationId
+   * @param message
    */
-  public static async sendReply(conversationId: string, message: string): Promise<any> {
+  public static async sendReply(
+    conversationId: string,
+    message: string,
+  ): Promise<any> {
     try {
       const url = `${BASE_URL}/${conversationId}/messages`;
       const response = await axios.post(url, null, {
@@ -42,7 +47,7 @@ export class InstagramService {
       });
       return response.data;
     } catch (error) {
-      console.error('Error in sendReply:', error);
+      console.error("Error in sendReply:", error);
       throw error;
     }
   }

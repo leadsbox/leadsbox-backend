@@ -1,6 +1,13 @@
-import mongoose, { Schema, Document, ClientSession, Model, PipelineStage, UpdateWriteOpResult } from 'mongoose';
-import * as mongodb from 'mongodb';
-import { MongoMemoryServer, MongoMemoryReplSet } from 'mongodb-memory-server';
+import mongoose, {
+  Schema,
+  Document,
+  ClientSession,
+  Model,
+  PipelineStage,
+  UpdateWriteOpResult,
+} from "mongoose";
+import * as mongodb from "mongodb";
+import { MongoMemoryServer, MongoMemoryReplSet } from "mongodb-memory-server";
 
 const connectDB = async (): Promise<void> => {
   try {
@@ -15,7 +22,7 @@ const connectDB = async (): Promise<void> => {
 class MongoDBClient {
   private static instance: MongoDBClient;
   private static mongoTestServer: MongoMemoryReplSet;
-  private static environment: string = process.env.NODE_ENV || 'development';
+  private static environment: string = process.env.NODE_ENV || "development";
   private mongoClient!: mongodb.MongoClient;
   private connection: mongoose.Connection | null = null;
   private uri: string | null = null;
@@ -39,9 +46,12 @@ class MongoDBClient {
   public static async getInstance(): Promise<MongoDBClient | null> {
     if (!MongoDBClient.instance) {
       console.log({ environment: this.environment });
-      const uri = this.environment === 'test' ? `${await this.getInMemoryUri()}` : process.env.MONGO_URI;
+      const uri =
+        this.environment === "test"
+          ? `${await this.getInMemoryUri()}`
+          : process.env.MONGO_URI;
       if (!uri) {
-        console.error('Invalid Mongo URI');
+        console.error("Invalid Mongo URI");
         return null;
       }
       MongoDBClient.instance = new MongoDBClient(uri);
@@ -52,17 +62,17 @@ class MongoDBClient {
   public async startNativeMongo(): Promise<mongodb.Db | void> {
     try {
       if (!this.uri) {
-        console.error('Invalid Mongo URI');
-        throw new Error('Invalid Mongo URI');
+        console.error("Invalid Mongo URI");
+        throw new Error("Invalid Mongo URI");
       }
 
       this.mongoClient = new mongodb.MongoClient(this.uri!);
       await this.mongoClient.connect();
 
-      console.log('Monitoring change streams...');
+      console.log("Monitoring change streams...");
       return this.mongoClient.db();
     } catch (error) {
-      console.error('Failed to start monitor:', error);
+      console.error("Failed to start monitor:", error);
     }
   }
 
@@ -74,41 +84,46 @@ class MongoDBClient {
 
     if (!this.uri) {
       console.log({ environment: MongoDBClient.environment });
-      const uri = MongoDBClient.environment === 'test' ? await MongoDBClient.getInMemoryUri() : process.env.MONGO_URI;
+      const uri =
+        MongoDBClient.environment === "test"
+          ? await MongoDBClient.getInMemoryUri()
+          : process.env.MONGO_URI;
       if (!this.uri) {
-        console.error('Invalid Mongo URI');
+        console.error("Invalid Mongo URI");
         return null;
       }
     }
 
     try {
       const mongooseInstance = await mongoose.connect(this.uri, {
-        writeConcern: { w: 'majority', wtimeoutMS: 50000 },
+        writeConcern: { w: "majority", wtimeoutMS: 50000 },
         retryWrites: true,
       });
       this.connection = mongooseInstance.connection;
 
       if (this.connection) {
-        this.connection.on('connected', () => {
-          console.log(`MongoDB ${MongoDBClient.environment} connection established successfully.`);
+        this.connection.on("connected", () => {
+          console.log(
+            `MongoDB ${MongoDBClient.environment} connection established successfully.`,
+          );
         });
 
-        this.connection.on('error', (err) => {
-          console.error('MongoDB connection error:', err);
+        this.connection.on("error", (err) => {
+          console.error("MongoDB connection error:", err);
         });
 
-        this.connection.on('disconnected', () => {
-          console.warn('MongoDB connection lost.');
+        this.connection.on("disconnected", () => {
+          console.warn("MongoDB connection lost.");
         });
 
         console.log(`Connected to ${MongoDBClient.environment}  MongoDB`);
         return this.connection;
       } else {
-        console.error('Failed to initialize MongoDB connection.');
+        console.error("Failed to initialize MongoDB connection.");
         return null;
       }
     } catch (err) {
-      console.error('Error connecting to MongoDB:', err);
+      console.error("Error connecting to MongoDB:", err);
       return null;
     }
   }
@@ -116,9 +131,9 @@ class MongoDBClient {
   public async close(): Promise<void> {
     if (this.connection) {
       await this.connection.close();
-      console.log('Disconnected from MongoDB');
+      console.log("Disconnected from MongoDB");
       await MongoDBClient.mongoTestServer.stop();
-      console.log('Disconnected from Test MongoDB');
+      console.log("Disconnected from Test MongoDB");
     }
   }
 }

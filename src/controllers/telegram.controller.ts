@@ -1,10 +1,10 @@
 // src/controllers/telegram.controller.ts
-import { Request, Response } from 'express';
-import { ResponseUtils } from '../utils/reponse';
-import { StatusCode } from '../types/response';
-import { TelegramService } from '../service/telegram.service';
-import { LeadService } from '../service/leads.service';
-import { LeadModel } from '../models/leads.model';
+import { Request, Response } from "express";
+import { ResponseUtils } from "../utils/reponse";
+import { StatusCode } from "../types/response";
+import { TelegramService } from "../service/telegram.service";
+import { LeadService } from "../service/leads.service";
+import { LeadModel } from "../models/leads.model";
 
 class TelegramController {
   /**
@@ -15,97 +15,134 @@ class TelegramController {
   private tagConversation(message: string): string {
     const lowerMessage = message.toLowerCase();
 
-    if (lowerMessage.includes('cancel') || lowerMessage.includes('not interested') || lowerMessage.includes('lost')) {
-      return 'Closed Lost';
+    if (
+      lowerMessage.includes("cancel") ||
+      lowerMessage.includes("not interested") ||
+      lowerMessage.includes("lost")
+    ) {
+      return "Closed Lost";
     }
 
     if (
-      lowerMessage.includes('paid') ||
-      lowerMessage.includes('completed') ||
-      lowerMessage.includes('successful') ||
-      lowerMessage.includes('received')
+      lowerMessage.includes("paid") ||
+      lowerMessage.includes("completed") ||
+      lowerMessage.includes("successful") ||
+      lowerMessage.includes("received")
     ) {
-      return 'Transaction Successful';
-    }
-
-    if (lowerMessage.includes('payment') || lowerMessage.includes('transfer') || lowerMessage.includes('awaiting payment')) {
-      return 'Payment Pending';
-    }
-
-    if (lowerMessage.includes('order') || lowerMessage.includes('purchase') || lowerMessage.includes('confirm')) {
-      return 'Transaction in Progress';
+      return "Transaction Successful";
     }
 
     if (
-      lowerMessage.includes('follow-up') ||
-      lowerMessage.includes('reminder') ||
-      lowerMessage.includes('call me') ||
-      lowerMessage.includes('schedule')
+      lowerMessage.includes("payment") ||
+      lowerMessage.includes("transfer") ||
+      lowerMessage.includes("awaiting payment")
     ) {
-      return 'Follow-Up Required';
+      return "Payment Pending";
     }
 
-    if (lowerMessage.includes('inquiry') || lowerMessage.includes('question') || lowerMessage.includes('info')) {
-      return 'New Inquiry';
+    if (
+      lowerMessage.includes("order") ||
+      lowerMessage.includes("purchase") ||
+      lowerMessage.includes("confirm")
+    ) {
+      return "Transaction in Progress";
     }
 
-    return 'Engaged';
+    if (
+      lowerMessage.includes("follow-up") ||
+      lowerMessage.includes("reminder") ||
+      lowerMessage.includes("call me") ||
+      lowerMessage.includes("schedule")
+    ) {
+      return "Follow-Up Required";
+    }
+
+    if (
+      lowerMessage.includes("inquiry") ||
+      lowerMessage.includes("question") ||
+      lowerMessage.includes("info")
+    ) {
+      return "New Inquiry";
+    }
+
+    return "Engaged";
   }
 
   /**
    * Handles incoming webhook updates from Telegram.
    * Parses the update, tags the conversation, stores the lead, and triggers auto-reply if needed.
    */
- public async handleUpdate(req: Request, res: Response): Promise<void> {
-  const update = req.body;
-  console.log('Received Telegram update:', update);
+  public async handleUpdate(req: Request, res: Response): Promise<void> {
+    const update = req.body;
+    console.log("Received Telegram update:", update);
 
-  if (update.message) {
-    const chatId = update.message.chat.id;
-    const text = update.message.text;
-    const userId = update.message.from?.id;
+    if (update.message) {
+      const chatId = update.message.chat.id;
+      const text = update.message.text;
+      const userId = update.message.from?.id;
 
-    if (!userId) {
-      return ResponseUtils.error(res, 'User ID not found in message', StatusCode.BAD_REQUEST);
-    }
-
-    if (text) {
-      // Determine the tag based on the message text
-      const tag = this.tagConversation(text);
-      console.log('Determined tag:', tag);
-
-      try {
-        await LeadService.storeTelegramLead(chatId, userId.toString(), text, tag);
-      } catch (error) {
-        console.error('Error storing Telegram lead:', error);
-      }
-
-      // Optionally trigger an auto-reply if the message contains the keyword "price"
-      if (text.toLowerCase().includes('price')) {
-        try {
-          await TelegramService.sendMessage(chatId, 'Thank you for your inquiry! Please visit https://example.com/pricing for details.');
-        } catch (error) {
-          console.error('Auto-reply error:', error);
-        }
-      }
-
-      if (text.startsWith('/start')) {
-        await TelegramService.sendMessage(
-          chatId,
-          'Welcome to Leadsbox! I’m here to help you with your inquiries. How can I assist you today?'
+      if (!userId) {
+        return ResponseUtils.error(
+          res,
+          "User ID not found in message",
+          StatusCode.BAD_REQUEST,
         );
-        // Optionally, initialize or update a user session here.
-        return ResponseUtils.success(res, update, 'Welcome message sent', StatusCode.OK);
       }
-    } else {
-      // Optionally handle non-text messages (e.g. new member notifications)
-      console.log('No text found in the message; likely a non-text update.');
+
+      if (text) {
+        // Determine the tag based on the message text
+        const tag = this.tagConversation(text);
+        console.log("Determined tag:", tag);
+
+        try {
+          await LeadService.storeTelegramLead(
+            chatId,
+            userId.toString(),
+            text,
+            tag,
+          );
+        } catch (error) {
+          console.error("Error storing Telegram lead:", error);
+        }
+
+        // Optionally trigger an auto-reply if the message contains the keyword "price"
+        if (text.toLowerCase().includes("price")) {
+          try {
+            await TelegramService.sendMessage(
+              chatId,
+              "Thank you for your inquiry! Please visit https://example.com/pricing for details.",
+            );
+          } catch (error) {
+            console.error("Auto-reply error:", error);
+          }
+        }
+
+        if (text.startsWith("/start")) {
+          await TelegramService.sendMessage(
+            chatId,
+            "Welcome to Leadsbox! I’m here to help you with your inquiries. How can I assist you today?",
+          );
+          // Optionally, initialize or update a user session here.
+          return ResponseUtils.success(
+            res,
+            update,
+            "Welcome message sent",
+            StatusCode.OK,
+          );
+        }
+      } else {
+        // Optionally handle non-text messages (e.g. new member notifications)
+        console.log("No text found in the message; likely a non-text update.");
+      }
     }
+
+    return ResponseUtils.success(
+      res,
+      update,
+      "Update processed",
+      StatusCode.OK,
+    );
   }
-
-  return ResponseUtils.success(res, update, 'Update processed', StatusCode.OK);
-}
-
 
   /**
    * Sends a reply to a specific Telegram chat.
@@ -113,34 +150,66 @@ class TelegramController {
   public async sendReply(req: Request, res: Response): Promise<void> {
     const { chatId, message } = req.body;
     if (!chatId || !message) {
-      return ResponseUtils.error(res, 'chatId and message are required', StatusCode.BAD_REQUEST);
+      return ResponseUtils.error(
+        res,
+        "chatId and message are required",
+        StatusCode.BAD_REQUEST,
+      );
     }
     try {
       const result = await TelegramService.sendMessage(chatId, message);
-      return ResponseUtils.success(res, { result }, 'Reply sent successfully', StatusCode.OK);
+      return ResponseUtils.success(
+        res,
+        { result },
+        "Reply sent successfully",
+        StatusCode.OK,
+      );
     } catch (error: any) {
-      return ResponseUtils.error(res, 'Failed to send reply', StatusCode.INTERNAL_SERVER_ERROR, error.message);
+      return ResponseUtils.error(
+        res,
+        "Failed to send reply",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message,
+      );
     }
   }
 
   public async getAllLeads(req: Request, res: Response): Promise<void> {
     const leads = await LeadService.getAllLeads();
-    return ResponseUtils.success(res, { leads }, 'Leads fetched successfully', StatusCode.OK);
+    return ResponseUtils.success(
+      res,
+      { leads },
+      "Leads fetched successfully",
+      StatusCode.OK,
+    );
   }
 
   public async getLeadsByUserId(req: Request, res: Response): Promise<void> {
     const { userId } = req.body;
 
     if (!userId) {
-      return ResponseUtils.error(res, 'userId is required in the request body', StatusCode.BAD_REQUEST);
+      return ResponseUtils.error(
+        res,
+        "userId is required in the request body",
+        StatusCode.BAD_REQUEST,
+      );
     }
 
     try {
       const leads = await LeadService.getLeadsByUserId(userId);
-      return ResponseUtils.success(res, { leads }, 'Leads fetched successfully', StatusCode.OK);
+      return ResponseUtils.success(
+        res,
+        { leads },
+        "Leads fetched successfully",
+        StatusCode.OK,
+      );
     } catch (error) {
-      console.error('Error fetching user leads:', error);
-      return ResponseUtils.error(res, 'Failed to fetch user leads', StatusCode.INTERNAL_SERVER_ERROR);
+      console.error("Error fetching user leads:", error);
+      return ResponseUtils.error(
+        res,
+        "Failed to fetch user leads",
+        StatusCode.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

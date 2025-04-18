@@ -1,7 +1,7 @@
 export interface IFollowUp {
   conversationId: string;
   followUpTime: Date;
-  status: string; 
+  status: string;
   notes?: string;
 }
 

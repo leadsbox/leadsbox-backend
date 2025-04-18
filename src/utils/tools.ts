@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
-import { TokenPayload } from '../types';
+import jwt from "jsonwebtoken";
+import { TokenPayload } from "../types";
 
 class Tools {
   private JWT_SECRET: string;
@@ -7,12 +7,12 @@ class Tools {
   constructor() {
     this.JWT_SECRET = process.env.JWT_SECRET as string;
     if (!this.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined in environment variables');
+      throw new Error("JWT_SECRET is not defined in environment variables");
     }
   }
 
   public async createToken(payload: object): Promise<string> {
-    return jwt.sign(payload, this.JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign(payload, this.JWT_SECRET, { expiresIn: "30d" });
   }
 
   public decodeToken(token: string): object | null {
@@ -24,18 +24,18 @@ class Tools {
   }
 
   public encrypt(data: string, secret: string): string {
-    const crypto = require('crypto');
-    const cipher = crypto.createCipher('aes-256-cbc', secret);
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+    const crypto = require("crypto");
+    const cipher = crypto.createCipher("aes-256-cbc", secret);
+    let encrypted = cipher.update(data, "utf8", "hex");
+    encrypted += cipher.final("hex");
     return encrypted;
   }
 
   public decrypt(encryptedData: string, secret: string): string {
-    const crypto = require('crypto');
-    const decipher = crypto.createDecipher('aes-256-cbc', secret);
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    const crypto = require("crypto");
+    const decipher = crypto.createDecipher("aes-256-cbc", secret);
+    let decrypted = decipher.update(encryptedData, "hex", "utf8");
+    decrypted += decipher.final("utf8");
     return decrypted;
   }
 

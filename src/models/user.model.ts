@@ -1,5 +1,5 @@
-import { mongoose } from '../config/db';
-import { IUser, DefaultDate } from '../types/user';
+import { mongoose } from "../config/db";
+import { IUser, DefaultDate } from "../types/user";
 
 export type UserDocument = IUser & mongoose.Document;
 
@@ -16,11 +16,14 @@ const userSchema = new mongoose.Schema<UserDocument>(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     id: false,
-  }
+  },
 );
 
-userSchema.set('toJSON', {
-  transform: function (doc: mongoose.Document, ret: Partial<UserDocument & DefaultDate>) {
+userSchema.set("toJSON", {
+  transform: function (
+    doc: mongoose.Document,
+    ret: Partial<UserDocument & DefaultDate>,
+  ) {
     if (ret.createdAt) {
       ret.createdAt = ret.createdAt.toISOString() as any;
     }
@@ -31,8 +34,11 @@ userSchema.set('toJSON', {
   },
 });
 
-userSchema.set('toObject', {
-  transform: function (doc: mongoose.Document, ret: Partial<UserDocument & DefaultDate>) {
+userSchema.set("toObject", {
+  transform: function (
+    doc: mongoose.Document,
+    ret: Partial<UserDocument & DefaultDate>,
+  ) {
     if (ret.createdAt) {
       ret.createdAt = ret.createdAt.toISOString() as any;
     }
@@ -43,6 +49,6 @@ userSchema.set('toObject', {
   },
 });
 
-const UserModel = mongoose.model<UserDocument>('User', userSchema);
+const UserModel = mongoose.model<UserDocument>("User", userSchema);
 
 export { UserModel, userSchema };

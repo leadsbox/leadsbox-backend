@@ -1,11 +1,11 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 export class MailerService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -13,7 +13,11 @@ export class MailerService {
     });
   }
 
-  public async sendMail(to: string, subject: string, html: string): Promise<void> {
+  public async sendMail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
     try {
       await this.transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -22,8 +26,8 @@ export class MailerService {
         html,
       });
     } catch (error) {
-      console.error('Failed to send email:', error);
-      throw new Error('Email sending failed');
+      console.error("Failed to send email:", error);
+      throw new Error("Email sending failed");
     }
   }
 }

@@ -1,22 +1,22 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export class CryptoUtils {
-  private static algorithm = 'aes-256-cbc';
+  private static algorithm = "aes-256-cbc";
 
   static hashPassword(password: string): string {
-    return crypto.createHash('sha512').update(password).digest('hex');
+    return crypto.createHash("sha512").update(password).digest("hex");
   }
 
   static generateUserKeyPair() {
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
       modulusLength: 2048,
       publicKeyEncoding: {
-        type: 'spki',
-        format: 'pem',
+        type: "spki",
+        format: "pem",
       },
       privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem',
+        type: "pkcs8",
+        format: "pem",
       },
     });
 
@@ -35,28 +35,28 @@ export class CryptoUtils {
   }
 
   static createRandomBytes(length: number = 32): string {
-    return crypto.randomBytes(length).toString('hex');
+    return crypto.randomBytes(length).toString("hex");
   }
 
   static encrypt(text: string, secret: string): string {
-    const key = crypto.createHash('sha256').update(secret).digest();
+    const key = crypto.createHash("sha256").update(secret).digest();
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(this.algorithm, key, iv);
 
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+    let encrypted = cipher.update(text, "utf8", "hex");
+    encrypted += cipher.final("hex");
 
-    return `${iv.toString('hex')}:${encrypted}`;
+    return `${iv.toString("hex")}:${encrypted}`;
   }
 
   static decrypt(encryptedText: string, secret: string): string {
-    const [ivHex, encrypted] = encryptedText.split(':');
-    const key = crypto.createHash('sha256').update(secret).digest();
-    const iv = Buffer.from(ivHex, 'hex');
+    const [ivHex, encrypted] = encryptedText.split(":");
+    const key = crypto.createHash("sha256").update(secret).digest();
+    const iv = Buffer.from(ivHex, "hex");
     const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
 
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
 
     return decrypted;
   }

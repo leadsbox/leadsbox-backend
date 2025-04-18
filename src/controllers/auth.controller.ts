@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
-import { CryptoUtils } from '../utils/crypto';
-import { Toolbox } from '../utils/tools';
-import { ResponseUtils } from '../utils/reponse';
-import { StatusCode } from '../types/response';
-import AuthValidations from '../validations/auth.validation';
-import { mongoose } from '../config/db';
-import { mongoUserService } from '../service/mongo';
-import { mailerService } from '../service/nodemailer';
+import { Request, Response } from "express";
+import { CryptoUtils } from "../utils/crypto";
+import { Toolbox } from "../utils/tools";
+import { ResponseUtils } from "../utils/reponse";
+import { StatusCode } from "../types/response";
+import AuthValidations from "../validations/auth.validation";
+import { mongoose } from "../config/db";
+import { mongoUserService } from "../service/mongo";
+import { mailerService } from "../service/nodemailer";
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
@@ -15,20 +15,27 @@ class AuthController {
 
     const session = await mongoUserService.startSession();
     session.startTransaction({
-      readConcern: { level: 'majority' },
-      writeConcern: { w: 'majority' },
+      readConcern: { level: "majority" },
+      writeConcern: { w: "majority" },
     });
     try {
       const userExists = await mongoUserService.findOne({ email }, { session });
       if (userExists.status && userExists.data) {
-        return ResponseUtils.error(res, 'User already exists', StatusCode.ALREADY_EXISTS);
+        return ResponseUtils.error(
+          res,
+          "User already exists",
+          StatusCode.ALREADY_EXISTS,
+        );
       }
 
       const _id = new mongoose.Types.ObjectId();
       const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
       const Auth = {
         PUBLIC_KEY,
-        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(PRIVATE_KEY, process.env.JWT_SECRET as string),
+        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+          PRIVATE_KEY,
+          process.env.JWT_SECRET as string,
+        ),
       };
 
       const token = await Toolbox.createToken({
@@ -45,21 +52,35 @@ class AuthController {
           token,
           userId: _id.toString(),
         },
-        { session }
+        { session },
       );
 
       if (!newUser.status) {
-        return ResponseUtils.error(res, 'Failed to create user', StatusCode.BAD_REQUEST);
+        return ResponseUtils.error(
+          res,
+          "Failed to create user",
+          StatusCode.BAD_REQUEST,
+        );
       }
 
       await session.commitTransaction();
-      return ResponseUtils.success(res, { profile: newUser.data }, 'User registered successfully!', StatusCode.CREATED);
+      return ResponseUtils.success(
+        res,
+        { profile: newUser.data },
+        "User registered successfully!",
+        StatusCode.CREATED,
+      );
     } catch (error: any) {
-      console.error('Error during registration:', error);
+      console.error("Error during registration:", error);
       if (session.inTransaction()) {
         await session.abortTransaction();
       }
-      return ResponseUtils.error(res, 'Server error', StatusCode.INTERNAL_SERVER_ERROR, error.message || error);
+      return ResponseUtils.error(
+        res,
+        "Server error",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message || error,
+      );
     }
   }
 
@@ -73,17 +94,31 @@ class AuthController {
     try {
       const user = await mongoUserService.findOne({ email });
       if (!user.status) {
-        return ResponseUtils.error(res, 'Email does not exist', StatusCode.UNAUTHORIZED);
+        return ResponseUtils.error(
+          res,
+          "Email does not exist",
+          StatusCode.UNAUTHORIZED,
+        );
       }
 
-      if (user.data && !CryptoUtils.checkPassword(password, user.data.password)) {
-        return ResponseUtils.error(res, 'Invalid password', StatusCode.UNAUTHORIZED);
+      if (
+        user.data &&
+        !CryptoUtils.checkPassword(password, user.data.password)
+      ) {
+        return ResponseUtils.error(
+          res,
+          "Invalid password",
+          StatusCode.UNAUTHORIZED,
+        );
       }
 
       const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
       const Auth = {
         PUBLIC_KEY,
-        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(PRIVATE_KEY, process.env.JWT_SECRET as string),
+        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+          PRIVATE_KEY,
+          process.env.JWT_SECRET as string,
+        ),
       };
 
       const token = await Toolbox.createToken({
@@ -92,10 +127,20 @@ class AuthController {
       });
 
       await mongoUserService.updateOne({ _id: user.data!._id }, { token });
-      return ResponseUtils.success(res, { profile: user.data, token, PUBLIC_KEY }, 'Login successful', StatusCode.OK);
+      return ResponseUtils.success(
+        res,
+        { profile: user.data, token, PUBLIC_KEY },
+        "Login successful",
+        StatusCode.OK,
+      );
     } catch (error: any) {
-      console.error('Login Error:', error);
-      return ResponseUtils.error(res, 'Server error', StatusCode.INTERNAL_SERVER_ERROR, error.message || error);
+      console.error("Login Error:", error);
+      return ResponseUtils.error(
+        res,
+        "Server error",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message || error,
+      );
     }
   }
 
@@ -109,7 +154,7 @@ class AuthController {
     try {
       const user = await mongoUserService.findOne({ email });
       if (!user.status || !user.data) {
-        return ResponseUtils.error(res, 'User not found', StatusCode.NOT_FOUND);
+        return ResponseUtils.error(res, "User not found", StatusCode.NOT_FOUND);
       }
 
       const resetToken = await Toolbox.createToken({
@@ -118,7 +163,10 @@ class AuthController {
         username: user.data.username,
       });
 
-      await mongoUserService.updateOne({ _id: user.data._id }, { token: resetToken });
+      await mongoUserService.updateOne(
+        { _id: user.data._id },
+        { token: resetToken },
+      );
 
       const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
       const emailTemplate = `
@@ -126,12 +174,26 @@ class AuthController {
         <p>Click <a href="${resetLink}">here</a> to reset your password.</p>
       `;
 
-      await mailerService.sendMail(email, 'Password Reset Request', emailTemplate);
+      await mailerService.sendMail(
+        email,
+        "Password Reset Request",
+        emailTemplate,
+      );
 
-      return ResponseUtils.success(res, null, 'Password reset link sent to your email.', StatusCode.OK);
+      return ResponseUtils.success(
+        res,
+        null,
+        "Password reset link sent to your email.",
+        StatusCode.OK,
+      );
     } catch (error: any) {
-      console.error('Forgot Password Error:', error);
-      return ResponseUtils.error(res, 'Server error', StatusCode.INTERNAL_SERVER_ERROR, error.message || error);
+      console.error("Forgot Password Error:", error);
+      return ResponseUtils.error(
+        res,
+        "Server error",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message || error,
+      );
     }
   }
 
@@ -145,7 +207,11 @@ class AuthController {
     try {
       const tokenPayload = await Toolbox.verifyToken(token);
       if (!tokenPayload || !tokenPayload.userId) {
-        return ResponseUtils.error(res, 'Invalid or expired token', StatusCode.BAD_REQUEST);
+        return ResponseUtils.error(
+          res,
+          "Invalid or expired token",
+          StatusCode.BAD_REQUEST,
+        );
       }
 
       const userId = tokenPayload.userId;
@@ -155,7 +221,10 @@ class AuthController {
       const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
       const Auth = {
         PUBLIC_KEY,
-        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(PRIVATE_KEY, process.env.JWT_SECRET as string),
+        ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+          PRIVATE_KEY,
+          process.env.JWT_SECRET as string,
+        ),
       };
 
       const newAuthToken = await Toolbox.createToken({
@@ -165,17 +234,31 @@ class AuthController {
 
       const updateResult = await mongoUserService.updateOne(
         { _id: new mongoose.Types.ObjectId(userId) },
-        { password: hashedPassword, token: newAuthToken }
+        { password: hashedPassword, token: newAuthToken },
       );
 
       if (!updateResult.status) {
-        return ResponseUtils.error(res, 'Failed to reset password', StatusCode.BAD_REQUEST);
+        return ResponseUtils.error(
+          res,
+          "Failed to reset password",
+          StatusCode.BAD_REQUEST,
+        );
       }
 
-      return ResponseUtils.success(res, null, 'Password has been reset successfully', StatusCode.OK);
+      return ResponseUtils.success(
+        res,
+        null,
+        "Password has been reset successfully",
+        StatusCode.OK,
+      );
     } catch (error: any) {
-      console.error('Reset Password Error:', error);
-      return ResponseUtils.error(res, 'Server error', StatusCode.INTERNAL_SERVER_ERROR, error.message || error);
+      console.error("Reset Password Error:", error);
+      return ResponseUtils.error(
+        res,
+        "Server error",
+        StatusCode.INTERNAL_SERVER_ERROR,
+        error.message || error,
+      );
     }
   }
 }
