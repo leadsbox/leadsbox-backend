@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
-import { ResponseUtils } from "../utils/reponse";
-import { StatusCode } from "../types/response";
-import { FollowUpService } from "../service/followup.service";
+import { Request, Response } from 'express';
+import { ResponseUtils } from '../utils/reponse';
+import { StatusCode } from '../types/response';
+import { FollowUpService } from '../service/followup.service';
 
 class TelegramFollowUpController {
   public async createFollowUp(req: Request, res: Response): Promise<void> {
@@ -9,7 +9,7 @@ class TelegramFollowUpController {
     if (!chatId || !followUpTime) {
       return ResponseUtils.error(
         res,
-        "chatId and followUpTime are required",
+        'chatId and followUpTime are required',
         StatusCode.BAD_REQUEST,
       );
     }
@@ -21,13 +21,13 @@ class TelegramFollowUpController {
       return ResponseUtils.success(
         res,
         { followUp },
-        "Follow-up scheduled successfully",
+        'Follow-up scheduled successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
       return ResponseUtils.error(
         res,
-        "Failed to schedule follow-up",
+        'Failed to schedule follow-up',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message,
       );

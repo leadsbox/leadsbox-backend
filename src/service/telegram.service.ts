@@ -1,10 +1,10 @@
-import axios from "axios";
-import { TelegramBotToken } from "../config/dotenv";
+import axios from 'axios';
+import { TelegramBotToken } from '../config/dotenv';
 
 const TELEGRAM_BOT_TOKEN = TelegramBotToken;
 if (!TELEGRAM_BOT_TOKEN) {
   throw new Error(
-    "TELEGRAM_BOT_TOKEN must be defined in your environment variables",
+    'TELEGRAM_BOT_TOKEN must be defined in your environment variables',
   );
 }
 
@@ -23,7 +23,7 @@ export class TelegramService {
       });
       return response.data;
     } catch (error) {
-      console.error("Error sending Telegram message:", error);
+      console.error('Error sending Telegram message:', error);
       throw error;
     }
   }

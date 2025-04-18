@@ -1,4 +1,4 @@
-import { FollowUpModel } from "../models/followup.model";
+import { FollowUpModel } from '../models/followup.model';
 
 export class FollowUpService {
   /**
@@ -14,11 +14,11 @@ export class FollowUpService {
       const followUp = await FollowUpModel.create({
         conversationId: chatId,
         followUpTime: new Date(followUpTime),
-        status: "scheduled",
+        status: 'scheduled',
       });
       return followUp;
     } catch (error) {
-      console.error("Error scheduling Telegram follow-up:", error);
+      console.error('Error scheduling Telegram follow-up:', error);
       throw error;
     }
   }

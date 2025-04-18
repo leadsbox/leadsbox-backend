@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
-import { ResponseUtils } from "../utils/reponse";
-import { StatusCode } from "../types/response";
-import { InstagramService } from "../service/instagram.service";
+import { Request, Response } from 'express';
+import { ResponseUtils } from '../utils/reponse';
+import { StatusCode } from '../types/response';
+import { InstagramService } from '../service/instagram.service';
 
 class InstagramController {
   /**
@@ -13,14 +13,14 @@ class InstagramController {
       return ResponseUtils.success(
         res,
         { conversations },
-        "Conversations retrieved successfully",
+        'Conversations retrieved successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Error fetching Instagram conversations:", error);
+      console.error('Error fetching Instagram conversations:', error);
       return ResponseUtils.error(
         res,
-        "Failed to fetch conversations",
+        'Failed to fetch conversations',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );
@@ -35,7 +35,7 @@ class InstagramController {
     if (!conversationId || !message) {
       return ResponseUtils.error(
         res,
-        "conversationId and message are required",
+        'conversationId and message are required',
         StatusCode.BAD_REQUEST,
       );
     }
@@ -45,14 +45,14 @@ class InstagramController {
       return ResponseUtils.success(
         res,
         { result },
-        "Reply sent successfully",
+        'Reply sent successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Error sending Instagram reply:", error);
+      console.error('Error sending Instagram reply:', error);
       return ResponseUtils.error(
         res,
-        "Failed to send reply",
+        'Failed to send reply',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );

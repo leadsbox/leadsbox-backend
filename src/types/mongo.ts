@@ -1,4 +1,4 @@
-import { mongoose } from "../config/db";
+import { mongoose } from '../config/db';
 
 export type DbResponse<T = any> = {
   status: boolean;

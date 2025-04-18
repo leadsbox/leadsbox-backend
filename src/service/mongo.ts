@@ -1,6 +1,6 @@
-import { ClientSession, Model, mongoose } from "../config/db";
-import { UserDocument, UserModel } from "../models/user.model";
-import { DbOptions, DbResponse } from "../types/mongo";
+import { ClientSession, Model, mongoose } from '../config/db';
+import { UserDocument, UserModel } from '../models/user.model';
+import { DbOptions, DbResponse } from '../types/mongo';
 
 class MongoDBService<T extends mongoose.Document> {
   private model: Model<T>;
@@ -13,7 +13,7 @@ class MongoDBService<T extends mongoose.Document> {
   private handleResponse(
     status: boolean,
     data: any = null,
-    message = "",
+    message = '',
     error: any = null,
   ): DbResponse {
     return { status, data, message, error };
@@ -50,14 +50,14 @@ class MongoDBService<T extends mongoose.Document> {
       return this.handleResponse(
         true,
         savedDoc,
-        "Document created successfully",
+        'Document created successfully',
       );
     } catch (error) {
       if (session) await this.abortTransaction();
       return this.handleResponse(
         false,
         null,
-        "Failed to create document",
+        'Failed to create document',
         error,
       );
     }
@@ -72,12 +72,12 @@ class MongoDBService<T extends mongoose.Document> {
       const doc = await this.model.findById(id).session(session).lean().exec();
       return doc
         ? this.handleResponse(true, doc)
-        : this.handleResponse(false, null, "Document not found");
+        : this.handleResponse(false, null, 'Document not found');
     } catch (error) {
       return this.handleResponse(
         false,
         null,
-        "Failed to retrieve document",
+        'Failed to retrieve document',
         error,
       );
     }
@@ -98,12 +98,12 @@ class MongoDBService<T extends mongoose.Document> {
       const doc = await queryBuilder.exec();
       return doc
         ? this.handleResponse(true, doc)
-        : this.handleResponse(false, null, "Document not found");
+        : this.handleResponse(false, null, 'Document not found');
     } catch (error) {
       return this.handleResponse(
         false,
         null,
-        "Failed to retrieve document",
+        'Failed to retrieve document',
         error,
       );
     }
@@ -126,13 +126,13 @@ class MongoDBService<T extends mongoose.Document> {
       return this.handleResponse(
         true,
         docs,
-        "Documents retrieved successfully",
+        'Documents retrieved successfully',
       );
     } catch (error) {
       return this.handleResponse(
         false,
         [],
-        "Failed to retrieve documents",
+        'Failed to retrieve documents',
         error,
       );
     }
@@ -151,14 +151,14 @@ class MongoDBService<T extends mongoose.Document> {
         session,
       });
       return updatedDoc
-        ? this.handleResponse(true, updatedDoc, "Document updated successfully")
-        : this.handleResponse(false, null, "Failed to update document");
+        ? this.handleResponse(true, updatedDoc, 'Document updated successfully')
+        : this.handleResponse(false, null, 'Failed to update document');
     } catch (error) {
       if (session) await this.abortTransaction();
       return this.handleResponse(
         false,
         null,
-        "Failed to update document",
+        'Failed to update document',
         error,
       );
     }
@@ -172,14 +172,14 @@ class MongoDBService<T extends mongoose.Document> {
         .session(session)
         .exec();
       return deletedDoc
-        ? this.handleResponse(true, deletedDoc, "Document deleted successfully")
-        : this.handleResponse(false, null, "Failed to delete document");
+        ? this.handleResponse(true, deletedDoc, 'Document deleted successfully')
+        : this.handleResponse(false, null, 'Failed to delete document');
     } catch (error) {
       if (session) await this.abortTransaction();
       return this.handleResponse(
         false,
         null,
-        "Failed to delete document",
+        'Failed to delete document',
         error,
       );
     }
@@ -195,13 +195,13 @@ class MongoDBService<T extends mongoose.Document> {
             result,
             `${result.deletedCount} documents deleted successfully`,
           )
-        : this.handleResponse(false, null, "No documents found to delete");
+        : this.handleResponse(false, null, 'No documents found to delete');
     } catch (error) {
       if (session) await this.abortTransaction();
       return this.handleResponse(
         false,
         null,
-        "Failed to delete documents",
+        'Failed to delete documents',
         error,
       );
     }

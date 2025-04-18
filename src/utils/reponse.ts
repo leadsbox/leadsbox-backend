@@ -1,10 +1,10 @@
-import { StatusCode } from "../types/response";
+import { StatusCode } from '../types/response';
 
 export class ResponseUtils {
   static success<T>(
     res: any,
     data: T,
-    message = "Success",
+    message = 'Success',
     code = StatusCode.OK,
   ): void {
     res.status(code).json({ message, data });
@@ -12,7 +12,7 @@ export class ResponseUtils {
 
   static error(
     res: any,
-    message = "An error occurred",
+    message = 'An error occurred',
     code = StatusCode.INTERNAL_SERVER_ERROR,
     data: any = null,
   ): void {

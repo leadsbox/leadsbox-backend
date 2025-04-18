@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { ResponseUtils } from "../utils/reponse";
-import { StatusCode } from "../types/response";
-import { LeadService } from "../service/leads.service";
-import { LeadModel } from "../models/leads.model";
+import { Request, Response } from 'express';
+import { ResponseUtils } from '../utils/reponse';
+import { StatusCode } from '../types/response';
+import { LeadService } from '../service/leads.service';
+import { LeadModel } from '../models/leads.model';
 
 class LeadController {
   /**
@@ -14,7 +14,7 @@ class LeadController {
     if (!tag) {
       return ResponseUtils.error(
         res,
-        "Tag is required",
+        'Tag is required',
         StatusCode.BAD_REQUEST,
       );
     }
@@ -26,14 +26,14 @@ class LeadController {
       return ResponseUtils.success(
         res,
         { updatedLead },
-        "Lead tag updated successfully",
+        'Lead tag updated successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Error updating lead tag:", error);
+      console.error('Error updating lead tag:', error);
       return ResponseUtils.error(
         res,
-        "Failed to update lead tag",
+        'Failed to update lead tag',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );
@@ -44,56 +44,56 @@ class LeadController {
     const lowerMessage = message.toLowerCase();
 
     if (
-      lowerMessage.includes("cancel") ||
-      lowerMessage.includes("not interested") ||
-      lowerMessage.includes("lost")
+      lowerMessage.includes('cancel') ||
+      lowerMessage.includes('not interested') ||
+      lowerMessage.includes('lost')
     ) {
-      return "Closed Lost";
+      return 'Closed Lost';
     }
 
     if (
-      lowerMessage.includes("paid") ||
-      lowerMessage.includes("completed") ||
-      lowerMessage.includes("successful") ||
-      lowerMessage.includes("received")
+      lowerMessage.includes('paid') ||
+      lowerMessage.includes('completed') ||
+      lowerMessage.includes('successful') ||
+      lowerMessage.includes('received')
     ) {
-      return "Transaction Successful";
+      return 'Transaction Successful';
     }
 
     if (
-      lowerMessage.includes("payment") ||
-      lowerMessage.includes("transfer") ||
-      lowerMessage.includes("awaiting payment")
+      lowerMessage.includes('payment') ||
+      lowerMessage.includes('transfer') ||
+      lowerMessage.includes('awaiting payment')
     ) {
-      return "Payment Pending";
+      return 'Payment Pending';
     }
 
     if (
-      lowerMessage.includes("order") ||
-      lowerMessage.includes("purchase") ||
-      lowerMessage.includes("confirm")
+      lowerMessage.includes('order') ||
+      lowerMessage.includes('purchase') ||
+      lowerMessage.includes('confirm')
     ) {
-      return "Transaction in Progress";
+      return 'Transaction in Progress';
     }
 
     if (
-      lowerMessage.includes("follow-up") ||
-      lowerMessage.includes("reminder") ||
-      lowerMessage.includes("call me") ||
-      lowerMessage.includes("schedule")
+      lowerMessage.includes('follow-up') ||
+      lowerMessage.includes('reminder') ||
+      lowerMessage.includes('call me') ||
+      lowerMessage.includes('schedule')
     ) {
-      return "Follow-Up Required";
+      return 'Follow-Up Required';
     }
 
     if (
-      lowerMessage.includes("inquiry") ||
-      lowerMessage.includes("question") ||
-      lowerMessage.includes("info")
+      lowerMessage.includes('inquiry') ||
+      lowerMessage.includes('question') ||
+      lowerMessage.includes('info')
     ) {
-      return "New Inquiry";
+      return 'New Inquiry';
     }
 
-    return "Engaged";
+    return 'Engaged';
   }
 
   /**
@@ -105,14 +105,14 @@ class LeadController {
       return ResponseUtils.success(
         res,
         { leads },
-        "Leads retrieved successfully",
+        'Leads retrieved successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Error retrieving leads:", error);
+      console.error('Error retrieving leads:', error);
       return ResponseUtils.error(
         res,
-        "Failed to retrieve leads",
+        'Failed to retrieve leads',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );

@@ -1,5 +1,5 @@
-import { mongoose, Schema } from "../config/db";
-import { IFollowUp, DefaultDate } from "../types/followup";
+import { mongoose, Schema } from '../config/db';
+import { IFollowUp, DefaultDate } from '../types/followup';
 
 export type FollowUpDocument = IFollowUp & mongoose.Document;
 
@@ -7,13 +7,13 @@ const FollowUpSchema = new Schema<FollowUpDocument>(
   {
     conversationId: { type: String, required: true },
     followUpTime: { type: Date, required: true },
-    status: { type: String, required: true, default: "scheduled" },
+    status: { type: String, required: true, default: 'scheduled' },
     notes: { type: String },
   },
   { timestamps: true },
 );
 
-FollowUpSchema.set("toJSON", {
+FollowUpSchema.set('toJSON', {
   transform: function (
     doc: mongoose.Document,
     ret: Partial<FollowUpDocument & DefaultDate>,
@@ -29,7 +29,7 @@ FollowUpSchema.set("toJSON", {
 });
 
 const FollowUpModel = mongoose.model<FollowUpDocument>(
-  "FollowUp",
+  'FollowUp',
   FollowUpSchema,
 );
 

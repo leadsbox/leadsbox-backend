@@ -1,12 +1,12 @@
-import { Request, Response } from "express";
-import { CryptoUtils } from "../utils/crypto";
-import { Toolbox } from "../utils/tools";
-import { ResponseUtils } from "../utils/reponse";
-import { StatusCode } from "../types/response";
-import AuthValidations from "../validations/auth.validation";
-import { mongoose } from "../config/db";
-import { mongoUserService } from "../service/mongo";
-import { mailerService } from "../service/nodemailer";
+import { Request, Response } from 'express';
+import { CryptoUtils } from '../utils/crypto';
+import { Toolbox } from '../utils/tools';
+import { ResponseUtils } from '../utils/reponse';
+import { StatusCode } from '../types/response';
+import AuthValidations from '../validations/auth.validation';
+import { mongoose } from '../config/db';
+import { mongoUserService } from '../service/mongo';
+import { mailerService } from '../service/nodemailer';
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
@@ -15,15 +15,15 @@ class AuthController {
 
     const session = await mongoUserService.startSession();
     session.startTransaction({
-      readConcern: { level: "majority" },
-      writeConcern: { w: "majority" },
+      readConcern: { level: 'majority' },
+      writeConcern: { w: 'majority' },
     });
     try {
       const userExists = await mongoUserService.findOne({ email }, { session });
       if (userExists.status && userExists.data) {
         return ResponseUtils.error(
           res,
-          "User already exists",
+          'User already exists',
           StatusCode.ALREADY_EXISTS,
         );
       }
@@ -58,7 +58,7 @@ class AuthController {
       if (!newUser.status) {
         return ResponseUtils.error(
           res,
-          "Failed to create user",
+          'Failed to create user',
           StatusCode.BAD_REQUEST,
         );
       }
@@ -67,17 +67,17 @@ class AuthController {
       return ResponseUtils.success(
         res,
         { profile: newUser.data },
-        "User registered successfully!",
+        'User registered successfully!',
         StatusCode.CREATED,
       );
     } catch (error: any) {
-      console.error("Error during registration:", error);
+      console.error('Error during registration:', error);
       if (session.inTransaction()) {
         await session.abortTransaction();
       }
       return ResponseUtils.error(
         res,
-        "Server error",
+        'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );
@@ -96,7 +96,7 @@ class AuthController {
       if (!user.status) {
         return ResponseUtils.error(
           res,
-          "Email does not exist",
+          'Email does not exist',
           StatusCode.UNAUTHORIZED,
         );
       }
@@ -107,7 +107,7 @@ class AuthController {
       ) {
         return ResponseUtils.error(
           res,
-          "Invalid password",
+          'Invalid password',
           StatusCode.UNAUTHORIZED,
         );
       }
@@ -130,14 +130,14 @@ class AuthController {
       return ResponseUtils.success(
         res,
         { profile: user.data, token, PUBLIC_KEY },
-        "Login successful",
+        'Login successful',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Login Error:", error);
+      console.error('Login Error:', error);
       return ResponseUtils.error(
         res,
-        "Server error",
+        'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );
@@ -154,7 +154,7 @@ class AuthController {
     try {
       const user = await mongoUserService.findOne({ email });
       if (!user.status || !user.data) {
-        return ResponseUtils.error(res, "User not found", StatusCode.NOT_FOUND);
+        return ResponseUtils.error(res, 'User not found', StatusCode.NOT_FOUND);
       }
 
       const resetToken = await Toolbox.createToken({
@@ -176,21 +176,21 @@ class AuthController {
 
       await mailerService.sendMail(
         email,
-        "Password Reset Request",
+        'Password Reset Request',
         emailTemplate,
       );
 
       return ResponseUtils.success(
         res,
         null,
-        "Password reset link sent to your email.",
+        'Password reset link sent to your email.',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Forgot Password Error:", error);
+      console.error('Forgot Password Error:', error);
       return ResponseUtils.error(
         res,
-        "Server error",
+        'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );
@@ -209,7 +209,7 @@ class AuthController {
       if (!tokenPayload || !tokenPayload.userId) {
         return ResponseUtils.error(
           res,
-          "Invalid or expired token",
+          'Invalid or expired token',
           StatusCode.BAD_REQUEST,
         );
       }
@@ -240,7 +240,7 @@ class AuthController {
       if (!updateResult.status) {
         return ResponseUtils.error(
           res,
-          "Failed to reset password",
+          'Failed to reset password',
           StatusCode.BAD_REQUEST,
         );
       }
@@ -248,14 +248,14 @@ class AuthController {
       return ResponseUtils.success(
         res,
         null,
-        "Password has been reset successfully",
+        'Password has been reset successfully',
         StatusCode.OK,
       );
     } catch (error: any) {
-      console.error("Reset Password Error:", error);
+      console.error('Reset Password Error:', error);
       return ResponseUtils.error(
         res,
-        "Server error",
+        'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error,
       );

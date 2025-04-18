@@ -1,4 +1,4 @@
-import { LeadModel } from "../models/leads.model";
+import { LeadModel } from '../models/leads.model';
 
 export class LeadService {
   /**
@@ -16,7 +16,7 @@ export class LeadService {
       );
       return updatedLead;
     } catch (error) {
-      console.error("Error in updateConversationTag:", error);
+      console.error('Error in updateConversationTag:', error);
       throw error;
     }
   }
@@ -38,7 +38,7 @@ export class LeadService {
     try {
       return await LeadModel.find({});
     } catch (error) {
-      console.error("Error in getLeads:", error);
+      console.error('Error in getLeads:', error);
       throw error;
     }
   }
@@ -47,7 +47,7 @@ export class LeadService {
     try {
       return await LeadModel.find({}).sort({ createdAt: -1 }).lean();
     } catch (error) {
-      console.error("Error fetching leads:", error);
+      console.error('Error fetching leads:', error);
       throw error;
     }
   }
@@ -56,7 +56,7 @@ export class LeadService {
     try {
       return await LeadModel.find({ userId }).sort({ createdAt: -1 }).lean();
     } catch (error) {
-      console.error("Error fetching leads for user:", error);
+      console.error('Error fetching leads for user:', error);
       throw error;
     }
   }
@@ -92,7 +92,7 @@ export class LeadService {
       }
       return lead;
     } catch (error) {
-      console.error("Error storing WhatsApp lead:", error);
+      console.error('Error storing WhatsApp lead:', error);
       throw error;
     }
   }
@@ -126,7 +126,7 @@ export class LeadService {
       }
       return lead;
     } catch (error) {
-      console.error("Error storing Telegram lead:", error);
+      console.error('Error storing Telegram lead:', error);
       throw error;
     }
   }

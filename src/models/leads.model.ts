@@ -1,13 +1,13 @@
-import { mongoose, Schema } from "../config/db";
-import { ILead, DefaultDate } from "../types/leads";
-import { TransactionSchema } from "./transaction.model";
+import { mongoose, Schema } from '../config/db';
+import { ILead, DefaultDate } from '../types/leads';
+import { TransactionSchema } from './transaction.model';
 
 export type LeadDocument = ILead & mongoose.Document;
 
 const LeadSchema = new Schema<LeadDocument>(
   {
     conversationId: { type: String, required: true },
-    userId: { type: String, ref: "User", required: true },
+    userId: { type: String, ref: 'User', required: true },
     transactions: { type: [TransactionSchema], default: [] },
   },
   {
@@ -18,7 +18,7 @@ const LeadSchema = new Schema<LeadDocument>(
   },
 );
 
-LeadSchema.set("toJSON", {
+LeadSchema.set('toJSON', {
   transform: function (
     doc: mongoose.Document,
     ret: Partial<LeadDocument & DefaultDate>,
@@ -33,6 +33,6 @@ LeadSchema.set("toJSON", {
   },
 });
 
-const LeadModel = mongoose.model<LeadDocument>("Lead", LeadSchema);
+const LeadModel = mongoose.model<LeadDocument>('Lead', LeadSchema);
 
 export { LeadModel, LeadSchema };
