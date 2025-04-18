@@ -4,6 +4,11 @@ import { LeadService } from '../service/leads.service';
 import { LeadCtrl } from './leads.controller';
 import { ResponseUtils } from '../utils/reponse';
 import crypto from 'crypto';
+declare module 'express-serve-static-core' {
+  interface Request {
+    rawBody?: Buffer;
+  }
+}
 
 class WhatsappController {
   /**
@@ -17,15 +22,15 @@ class WhatsappController {
 
     if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
       console.log('✅ WhatsApp webhook verified');
-      // ⚠️ raw challenge response is required by Meta
-      res.status(StatusCode.OK).send(challenge).end();
+      res.status(StatusCode.OK).send(challenge);
+      return;
     }
 
     console.warn('❌ WhatsApp webhook verification failed');
     return ResponseUtils.error(
       res,
       'Webhook verification failed',
-      StatusCode.BAD_REQUEST,
+      StatusCode.BAD_REQUEST
     );
   }
 
@@ -34,44 +39,43 @@ class WhatsappController {
    * Receive incoming messages and tag leads
    */
   public async handleUpdate(req: Request, res: Response): Promise<void> {
-    const body = req.body;
-
-    // 1️⃣ (Optional) Verify X‑Hub‑Signature‑256
+    const rawBody = req.rawBody!;
+    const sigHeader = req.get('x-hub-signature-256') || '';
     if (process.env.APP_SECRET) {
-      const sig = req.get('x-hub-signature-256') || '';
       const expected =
         'sha256=' +
         crypto
           .createHmac('sha256', process.env.APP_SECRET)
-          .update(JSON.stringify(body))
+          .update(rawBody)
           .digest('hex');
-      if (sig !== expected) {
-        console.warn('Invalid signature on incoming WhatsApp webhook');
+
+      if (sigHeader !== expected) {
+        console.warn(
+          `Invalid signature: received ${sigHeader}, expected ${expected}`
+        );
         return ResponseUtils.error(
           res,
           'Invalid signature on incoming WhatsApp webhook',
-          StatusCode.UNAUTHORIZED,
+          StatusCode.UNAUTHORIZED
         );
       }
     }
 
-    // 2️⃣ Only handle WhatsApp Business callbacks
+    const body = req.body;
     if (body.object !== 'whatsapp_business_account') {
       return ResponseUtils.error(
         res,
         'Unsupported callback object',
-        StatusCode.NOT_FOUND,
+        StatusCode.NOT_FOUND
       );
     }
 
-    // 3️⃣ Process each message
     for (const entry of body.entry || []) {
       for (const change of entry.changes || []) {
         const msg = change.value.messages?.[0];
         if (!msg) continue;
 
         const text = msg.text?.body;
-        const chatId = msg.from;
         const userId = msg.from;
         const convId = msg.id;
 
@@ -80,7 +84,6 @@ class WhatsappController {
           continue;
         }
 
-        // 3a) Store raw lead
         try {
           await LeadService.storeWhatsAppLead({
             conversationId: convId,
@@ -92,7 +95,6 @@ class WhatsappController {
           console.error('Error storing WhatsApp lead:', err);
         }
 
-        // 3b) Tag it
         if (text) {
           try {
             const newTag =
@@ -106,7 +108,6 @@ class WhatsappController {
       }
     }
 
-    // 4️⃣ Acknowledge receipt
     return ResponseUtils.success(res, null, 'Update processed', StatusCode.OK);
   }
 }

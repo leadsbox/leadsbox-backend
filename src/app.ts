@@ -9,10 +9,15 @@ import leadsRoutes from './routes/leads.routes';
 import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
 import telegramRoutes from './routes/telegram.routes';
+import whatsappRoutes from './routes/whatsapp.routes';
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    // @ts-ignore
+    req.rawBody = buf;
+  }
+}));app.use(cors());
 app.use(passport.initialize());
 
 app.get('/', (req, res) => {
@@ -23,6 +28,7 @@ app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
