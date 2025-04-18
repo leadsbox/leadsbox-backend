@@ -16,7 +16,7 @@
   "dependencies": {
     "@joi/date": "^2.1.1",
     "@types/express": "^5.0.1",
-    "@types/node": "^22.13.17",
+    "@types/node": "^22.14.1",
     "axios": "^1.8.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
