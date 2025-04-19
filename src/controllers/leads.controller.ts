@@ -3,6 +3,7 @@ import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
 import { LeadService } from '../service/leads.service';
 import { LeadModel } from '../models/leads.model';
+import { LeadLabel } from '../types/leads';
 
 class LeadController {
   /**
@@ -40,60 +41,136 @@ class LeadController {
     }
   }
 
-  public async tagConversation(message: string): Promise<string | undefined> {
+  public async tagConversation(message: string): Promise<LeadLabel | undefined> {
     const lowerMessage = message.toLowerCase();
 
     if (
       lowerMessage.includes('cancel') ||
       lowerMessage.includes('not interested') ||
-      lowerMessage.includes('lost')
+      lowerMessage.includes('lost') ||
+      lowerMessage.includes('give up') ||
+      lowerMessage.includes('not going ahead') ||
+      lowerMessage.includes('abandon')
     ) {
-      return 'Closed Lost';
+      return LeadLabel.CLOSED_LOST_TRANSACTION;
     }
 
     if (
       lowerMessage.includes('paid') ||
       lowerMessage.includes('completed') ||
       lowerMessage.includes('successful') ||
-      lowerMessage.includes('received')
+      lowerMessage.includes('received') ||
+      lowerMessage.includes('done') ||
+      lowerMessage.includes('confirmed')
     ) {
-      return 'Transaction Successful';
+      return LeadLabel.TRANSACTION_SUCCESSFUL;
     }
 
     if (
       lowerMessage.includes('payment') ||
       lowerMessage.includes('transfer') ||
-      lowerMessage.includes('awaiting payment')
+      lowerMessage.includes('awaiting payment') ||
+      lowerMessage.includes('waiting for payment') ||
+      lowerMessage.includes('pending payment')
     ) {
-      return 'Payment Pending';
+      return LeadLabel.PAYMENT_PENDING;
     }
 
     if (
       lowerMessage.includes('order') ||
       lowerMessage.includes('purchase') ||
-      lowerMessage.includes('confirm')
+      lowerMessage.includes('confirm') ||
+      lowerMessage.includes('processing') ||
+      lowerMessage.includes('shipping')
     ) {
-      return 'Transaction in Progress';
+      return LeadLabel.TRANSACTION_IN_PROGRESS;
     }
 
     if (
       lowerMessage.includes('follow-up') ||
       lowerMessage.includes('reminder') ||
       lowerMessage.includes('call me') ||
-      lowerMessage.includes('schedule')
+      lowerMessage.includes('schedule') ||
+      lowerMessage.includes('check back') ||
+      lowerMessage.includes('ping me')
     ) {
-      return 'Follow-Up Required';
+      return LeadLabel.FOLLOW_UP_REQUIRED;
     }
 
     if (
       lowerMessage.includes('inquiry') ||
       lowerMessage.includes('question') ||
-      lowerMessage.includes('info')
+      lowerMessage.includes('info') ||
+      lowerMessage.includes('enquiry')
     ) {
-      return 'New Inquiry';
+      return LeadLabel.NEW_INQUIRY;
     }
 
-    return 'Engaged';
+    if (
+      lowerMessage.includes('demo') ||
+      lowerMessage.includes('show me') ||
+      lowerMessage.includes('walkthrough')
+    ) {
+      return LeadLabel.DEMO_REQUEST;
+    }
+
+    if (
+      lowerMessage.includes('technical') ||
+      lowerMessage.includes('bug') ||
+      lowerMessage.includes('issue') ||
+      lowerMessage.includes('problem') ||
+      lowerMessage.includes('support') ||
+      lowerMessage.includes('help')
+    ) {
+      return LeadLabel.TECHNICAL_SUPPORT;
+    }
+
+    if (
+      lowerMessage.includes('price') ||
+      lowerMessage.includes('cost') ||
+      lowerMessage.includes('pricing') ||
+      lowerMessage.includes('quote')
+    ) {
+      return LeadLabel.PRICING_INQUIRY;
+    }
+
+    if (
+      lowerMessage.includes('partnership') ||
+      lowerMessage.includes('partner') ||
+      lowerMessage.includes('collaborate') ||
+      lowerMessage.includes('business opportunity')
+    ) {
+      return LeadLabel.PARTNERSHIP_OPPORTUNITY;
+    }
+
+    if (
+      lowerMessage.includes('feedback') ||
+      lowerMessage.includes('suggestion') ||
+      lowerMessage.includes('recommend') ||
+      lowerMessage.includes('review')
+    ) {
+      return LeadLabel.FEEDBACK;
+    }
+
+    if (
+      lowerMessage.includes('engaged') ||
+      lowerMessage.includes('interested') ||
+      lowerMessage.includes('discuss') ||
+      lowerMessage.includes('talking')
+    ) {
+      return LeadLabel.ENGAGED;
+    }
+
+    if (
+      lowerMessage.includes('not a lead') ||
+      lowerMessage.includes('spam') ||
+      lowerMessage.includes('unsubscribe') ||
+      lowerMessage.includes('wrong number')
+    ) {
+      return LeadLabel.NOT_A_LEAD;
+    }
+
+    return undefined;
   }
 
   /**
