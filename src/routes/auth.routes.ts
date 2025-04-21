@@ -8,7 +8,14 @@ const router = Router();
 
 router.get(
   '/facebook',
-  passport.authenticate('facebook', { scope: ['email'] }),
+  passport.authenticate('facebook', {
+    scope: [
+      'email',
+      'business_management',
+      'whatsapp_business_messaging',
+      'pages_show_list',
+    ],
+  })
 );
 
 router.get(
@@ -16,7 +23,7 @@ router.get(
   passport.authenticate('facebook', { session: false }),
   (req, res) => {
     FacebookAuthCtrl.facebookCallback(req, res);
-  },
+  }
 );
 
 router.get('/telegram/sign-in', TelegramAuthCtrl.signIn.bind(TelegramAuthCtrl));
