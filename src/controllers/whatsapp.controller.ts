@@ -4,6 +4,7 @@ import { LeadService } from '../service/leads.service';
 import { LeadCtrl } from './leads.controller';
 import { ResponseUtils } from '../utils/reponse';
 import crypto from 'crypto';
+import { WhatsappService } from '../service/whatsapp.service';
 declare module 'express-serve-static-core' {
   interface Request {
     rawBody?: Buffer;
@@ -109,6 +110,43 @@ class WhatsappController {
     }
 
     return ResponseUtils.success(res, null, 'Update processed', StatusCode.OK);
+  }
+
+  // controllers/whatsapp.controller.ts
+
+  public async connectWhatsapp(req: Request, res: Response) {
+    const { accessToken } = req.body;
+    const userId = (req.user as any)._id;
+
+    try {
+      const accounts = await WhatsappService.getBusinessAccounts(accessToken);
+      const wabaId = accounts.data?.[0]?.id;
+      if (!wabaId) throw new Error('No WhatsApp Business Account found');
+
+      const numbers = await WhatsappService.getPhoneNumbers(
+        wabaId,
+        accessToken
+      );
+      const phoneNumberId = numbers.data?.[0]?.id;
+      if (!phoneNumberId) throw new Error('No phone number found');
+
+      await WhatsappService.registerWebhook(wabaId, accessToken);
+
+      const connection = await WhatsappService.saveConnection({
+        userId,
+        wabaId,
+        phoneNumberId,
+        accessToken,
+      });
+
+      return res.status(200).json({
+        message: 'WhatsApp connected successfully',
+        connection,
+      });
+    } catch (err: any) {
+      console.error('WhatsApp Connect Error:', err);
+      return res.status(500).json({ message: err.message });
+    }
   }
 }
 
