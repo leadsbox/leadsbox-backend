@@ -10,21 +10,38 @@ import { mailerService } from '../service/nodemailer';
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
-    const { username, email, password } = req.body;
-    await AuthValidations.register(req.body);
-
-    const session = await mongoUserService.startSession();
-    session.startTransaction({
-      readConcern: { level: 'majority' },
-      writeConcern: { w: 'majority' },
-    });
     try {
-      const userExists = await mongoUserService.findOne({ email }, { session });
-      if (userExists.status && userExists.data) {
+      const { username, email, password } = req.body;
+      const validationResult = await AuthValidations.register(req.body);
+      if (validationResult !== true) {
         return ResponseUtils.error(
           res,
-          'User already exists',
-          StatusCode.ALREADY_EXISTS,
+          validationResult,
+          StatusCode.BAD_REQUEST
+        );
+      }
+
+      const usernameExists = await mongoUserService.findOne(
+        { username },
+        { session: null }
+      );
+      if (usernameExists.status && usernameExists.data) {
+        return ResponseUtils.error(
+          res,
+          'Username is already taken',
+          StatusCode.ALREADY_EXISTS
+        );
+      }
+
+      const emailExists = await mongoUserService.findOne(
+        { email },
+        { session: null }
+      );
+      if (emailExists.status && emailExists.data) {
+        return ResponseUtils.error(
+          res,
+          'Email is already registered',
+          StatusCode.ALREADY_EXISTS
         );
       }
 
@@ -34,7 +51,7 @@ class AuthController {
         PUBLIC_KEY,
         ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
           PRIVATE_KEY,
-          process.env.JWT_SECRET as string,
+          process.env.JWT_SECRET as string
         ),
       };
 
@@ -43,43 +60,40 @@ class AuthController {
         Auth,
       });
 
-      const newUser = await mongoUserService.create(
+      const newUser = await mongoUserService.updateOne(
         {
           _id,
+        },
+        {
+          userId: _id.toString(),
           username,
           email,
           password: CryptoUtils.hashPassword(password),
           token,
-          userId: _id.toString(),
-        },
-        { session },
+        }
       );
 
       if (!newUser.status) {
         return ResponseUtils.error(
           res,
           'Failed to create user',
-          StatusCode.BAD_REQUEST,
+          StatusCode.BAD_REQUEST
         );
       }
 
-      await session.commitTransaction();
       return ResponseUtils.success(
         res,
         { profile: newUser.data },
         'User registered successfully!',
-        StatusCode.CREATED,
+        StatusCode.CREATED
       );
     } catch (error: any) {
       console.error('Error during registration:', error);
-      if (session.inTransaction()) {
-        await session.abortTransaction();
-      }
       return ResponseUtils.error(
         res,
         'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }
@@ -97,7 +111,7 @@ class AuthController {
         return ResponseUtils.error(
           res,
           'Email does not exist',
-          StatusCode.UNAUTHORIZED,
+          StatusCode.UNAUTHORIZED
         );
       }
 
@@ -108,7 +122,7 @@ class AuthController {
         return ResponseUtils.error(
           res,
           'Invalid password',
-          StatusCode.UNAUTHORIZED,
+          StatusCode.UNAUTHORIZED
         );
       }
 
@@ -117,7 +131,7 @@ class AuthController {
         PUBLIC_KEY,
         ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
           PRIVATE_KEY,
-          process.env.JWT_SECRET as string,
+          process.env.JWT_SECRET as string
         ),
       };
 
@@ -131,7 +145,7 @@ class AuthController {
         res,
         { profile: user.data, token, PUBLIC_KEY },
         'Login successful',
-        StatusCode.OK,
+        StatusCode.OK
       );
     } catch (error: any) {
       console.error('Login Error:', error);
@@ -139,7 +153,7 @@ class AuthController {
         res,
         'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }
@@ -165,7 +179,7 @@ class AuthController {
 
       await mongoUserService.updateOne(
         { _id: user.data._id },
-        { token: resetToken },
+        { token: resetToken }
       );
 
       const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
@@ -177,14 +191,14 @@ class AuthController {
       await mailerService.sendMail(
         email,
         'Password Reset Request',
-        emailTemplate,
+        emailTemplate
       );
 
       return ResponseUtils.success(
         res,
         null,
         'Password reset link sent to your email.',
-        StatusCode.OK,
+        StatusCode.OK
       );
     } catch (error: any) {
       console.error('Forgot Password Error:', error);
@@ -192,7 +206,7 @@ class AuthController {
         res,
         'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }
@@ -210,7 +224,7 @@ class AuthController {
         return ResponseUtils.error(
           res,
           'Invalid or expired token',
-          StatusCode.BAD_REQUEST,
+          StatusCode.BAD_REQUEST
         );
       }
 
@@ -223,7 +237,7 @@ class AuthController {
         PUBLIC_KEY,
         ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
           PRIVATE_KEY,
-          process.env.JWT_SECRET as string,
+          process.env.JWT_SECRET as string
         ),
       };
 
@@ -234,14 +248,14 @@ class AuthController {
 
       const updateResult = await mongoUserService.updateOne(
         { _id: new mongoose.Types.ObjectId(userId) },
-        { password: hashedPassword, token: newAuthToken },
+        { password: hashedPassword, token: newAuthToken }
       );
 
       if (!updateResult.status) {
         return ResponseUtils.error(
           res,
           'Failed to reset password',
-          StatusCode.BAD_REQUEST,
+          StatusCode.BAD_REQUEST
         );
       }
 
@@ -249,7 +263,7 @@ class AuthController {
         res,
         null,
         'Password has been reset successfully',
-        StatusCode.OK,
+        StatusCode.OK
       );
     } catch (error: any) {
       console.error('Reset Password Error:', error);
@@ -257,7 +271,7 @@ class AuthController {
         res,
         'Server error',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }

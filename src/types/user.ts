@@ -1,11 +1,13 @@
-// types/user.ts
-export interface IUser {
-  userId: string;
+import { mongoose } from "../config/db";
+
+export type UserType = {
+  _id?: string;
+  userId: string | mongoose.Types.ObjectId;
   username: string;
   email: string;
   password: string;
   token?: string;
-}
+};
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };
 

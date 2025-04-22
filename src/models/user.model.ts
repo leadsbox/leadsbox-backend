@@ -1,7 +1,7 @@
 import { mongoose } from '../config/db';
-import { IUser, DefaultDate } from '../types/user';
+import { UserType, DefaultDate } from '../types/user';
 
-export type UserDocument = IUser & mongoose.Document;
+export type UserDocument = UserType & mongoose.Document;
 
 const userSchema = new mongoose.Schema<UserDocument>(
   {

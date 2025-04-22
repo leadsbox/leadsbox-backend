@@ -4,12 +4,12 @@ import { Toolbox } from '../utils/tools';
 import { mongoUserService } from '../service/mongo';
 import { StatusCode } from '../types/response';
 import { ResponseUtils } from '../utils/reponse';
-import { IUser } from '../types';
+import { UserType } from '../types';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: IUser;
+      user?: UserType;
     }
   }
 }

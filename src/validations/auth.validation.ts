@@ -8,19 +8,25 @@ const reservedWords = ['admin', 'support', 'null'];
 
 const AuthValidations = {
   async register(payload: any) {
+    if (!payload.username && payload.email) {
+      const emailName = payload.email.split('@')[0];
+      const baseUsername = emailName.replace(/[^a-zA-Z0-9]/g, '');
+      payload.username = baseUsername.toLowerCase();
+    }
     const schema = joi.object({
       username: joi
         .string()
-        .min(4)
+        .min(1)
         .max(30)
+        .regex(/^(?!.*\.\.)(?!.*\.$)[a-zA-Z0-9._]+$/)
         .invalid(...reservedWords)
-        .pattern(/^[^\s-_.]*$/)
         .required()
         .messages({
-          'string.min': 'Username must be at least 4 characters long.',
+          'string.pattern.base':
+            'Username can only contain letters, numbers, underscores, and periods. It cannot end with a period or have consecutive periods.',
+          'string.min': 'Username must be at least 1 character long.',
           'string.max': 'Username must not exceed 30 characters.',
           'any.invalid': 'Username cannot be a reserved word.',
-          'string.pattern.base': 'Username must not contain "_", ".", or "-"',
           'any.required': 'Username is required!',
         }),
 
