@@ -7,31 +7,18 @@ class FacebookAuthController {
   public async facebookCallback(req: Request, res: Response): Promise<void> {
     console.log('Received Facebook callback');
     const user = req.user as any;
-    if (!user) {
-      return ResponseUtils.error(
-        res,
-        'Authentication failed',
-        StatusCode.UNAUTHORIZED,
-      );
+
+    if (!user || !user.token) {
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+      return res.redirect(`${clientUrl}/login?error=facebook_auth_failed`);
     }
 
-    try {
-      const token = await Toolbox.createToken({ userId: user.userId });
-      console.log('Generated token:', token);
-      return ResponseUtils.success(
-        res,
-        { user, token },
-        'Facebook login successful',
-        StatusCode.OK,
-      );
-    } catch (error: any) {
-      return ResponseUtils.error(
-        res,
-        'Error generating token',
-        StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
-      );
-    }
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const redirectUrl = `${clientUrl}/facebook?token=${encodeURIComponent(
+      user.token
+    )}`;
+
+    return res.redirect(redirectUrl);
   }
 }
 

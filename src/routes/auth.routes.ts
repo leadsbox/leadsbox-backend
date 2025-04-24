@@ -21,7 +21,7 @@ router.get(
 router.get(
   '/facebook/callback',
   passport.authenticate('facebook', { session: false }),
-  (req, res) => {
+  async (req, res) => {
     FacebookAuthCtrl.facebookCallback(req, res);
   }
 );

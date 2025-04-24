@@ -1,6 +1,11 @@
 import passport from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { UserModel } from '../models/user.model';
+import { UserProvider } from '../types';
+import { mongoUserService } from '../service/mongo';
+import { Toolbox } from '../utils/tools';
+import { CryptoUtils } from '../utils/crypto';
+import { mongoose } from './db';
 
 passport.serializeUser((user: any, done) => {
   done(null, user.id);
@@ -24,32 +29,91 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails && profile.emails[0]?.value;
         const facebookId = profile.id;
-        const firstName = profile.name?.givenName || '';
-        const lastName = profile.name?.familyName || '';
+        const email = profile.emails?.[0]?.value ?? '';
+        const username =
+          profile.username ||
+          `${profile.name?.givenName ?? ''} ${
+            profile.name?.familyName ?? ''
+          }`.trim();
         console.log('Facebook profile:', profile);
-        console.log('Facebook ID:', facebookId);
-        console.log('Email:', email);
-        console.log('First Name:', firstName);
-        console.log('Last Name:', lastName);
 
-        let user = await UserModel.findOne({ facebookId });
-        if (!user) {
-          user = await UserModel.create({
-            facebookId,
-            username: `${firstName} ${lastName}`.trim(),
-            email: email || '',
-            password: '',
-            userId: facebookId,
+        let existingUser = await mongoUserService.findOneMongo(
+          { $or: [{ providerId: facebookId }, { email }] },
+          { session: null }
+        );
+        console.log('Existing user:', existingUser);
+
+        if (!existingUser.status || !existingUser.data) {
+          const _id = new mongoose.Types.ObjectId();
+
+          const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
+          const Auth = {
+            PUBLIC_KEY,
+            ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+              PRIVATE_KEY,
+              process.env.JWT_SECRET as string
+            ),
+          };
+          const token = await Toolbox.createToken({
+            userId: _id.toString(),
+            email: email,
+            username: username,
+            provider: UserProvider.FACEBOOK,
+            Auth,
           });
+
+          const createPayload = {
+            userId: _id.toString(),
+            username,
+            email,
+            provider: UserProvider.FACEBOOK,
+            token,
+            providerId: facebookId,
+            facebookId,
+          };
+          const creation = await mongoUserService.updateOne(
+            { _id },
+            createPayload
+          );
+          if (!creation.status || !creation.data) {
+            throw new Error('Failed to create Facebook user');
+          }
+          existingUser = creation;
         }
-        return done(null, user);
+
+        const userData = existingUser.data!;
+        const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
+        const Auth = {
+          PUBLIC_KEY,
+          ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+            PRIVATE_KEY,
+            process.env.JWT_SECRET as string
+          ),
+        };
+        const token = await Toolbox.createToken({
+          userId: userData.userId,
+          email: userData.email,
+          username: userData.username,
+          provider: userData.provider,
+          Auth,
+        });
+
+        await mongoUserService.updateOne({ _id: userData._id }, { token });
+
+        const userWithToken = {
+          ...userData,
+          token,
+          PUBLIC_KEY,
+        };
+
+        return done(null, userWithToken);
       } catch (error) {
-        return done(error, null);
+        console.error('Facebook auth error:', error);
+        return done(error as Error, null);
       }
-    },
-  ),
+    }
+  )
 );
 
 export default passport;

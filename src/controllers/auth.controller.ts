@@ -7,6 +7,7 @@ import AuthValidations from '../validations/auth.validation';
 import { mongoose } from '../config/db';
 import { mongoUserService } from '../service/mongo';
 import { mailerService } from '../service/nodemailer';
+import { UserProvider } from '../types';
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
@@ -58,6 +59,9 @@ class AuthController {
 
       const token = await Toolbox.createToken({
         userId: _id.toString(),
+        email,
+        username,
+        provider: UserProvider.LEADSBOX,
         Auth,
       });
 
@@ -71,6 +75,8 @@ class AuthController {
           email,
           password: CryptoUtils.hashPassword(password),
           token,
+          provider: UserProvider.LEADSBOX,
+          providerId: _id.toString(),
         }
       );
 
@@ -144,6 +150,9 @@ class AuthController {
 
       const token = await Toolbox.createToken({
         userId: user.data!.userId,
+        email: user.data!.email,
+        username: user.data!.username,
+        provider: user.data!.provider,
         Auth,
       });
 

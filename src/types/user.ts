@@ -1,4 +1,4 @@
-import { mongoose } from "../config/db";
+import { mongoose } from '../config/db';
 
 export type UserType = {
   _id?: string;
@@ -7,6 +7,8 @@ export type UserType = {
   email: string;
   password: string;
   token?: string;
+  provider?: UserProvider
+  providerId?: string;
 };
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };
@@ -16,4 +18,14 @@ export interface TokenPayload {
   email?: string;
   username?: string;
   exp?: number;
+}
+
+export enum UserProvider {
+  LEADSBOX = 'LeadsBox',
+  FACEBOOK = 'Facebook',
+  INSTAGRAM = 'Instagram',
+  TELEGRAM = 'Telegram',
+  WHATSAPP = 'WhatsApp',
+  TWITTER = 'Twitter',
+  GOOGLE = 'Google',
 }

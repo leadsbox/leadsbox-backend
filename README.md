@@ -110,12 +110,16 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 ### To log in to the app frontend, sign in using Telegram. 
 1. Open the leasdbox-frontend application
 2. run the FE localhost using ngrok - ngrok http 3000
-3. Open the app in your browser
-4. Click on the "Login with Telegram" button.
-5. The app will redirect you to the Telegram login page.
-6. Login using your Telegram account.
-7. After successful login, you will be redirected back to the app with your Telegram account information.
-8. You can now use the app to manage your leads and conversations.
+3. Copy the ngrok URl and paste it in the bot settings in telegram
+4. Open the telergam and go to botfather
+5. Type /setdomain and paste the ngrok URL
+6. Past the ngrok URL in the set domain
+7. Open the app in your browser
+8. Click on the "Login with Telegram" button.
+9. The app will redirect you to the Telegram login page.
+10. Login using your Telegram account.
+11. After successful login, you will be redirected back to the app with your Telegram account information.
+12. You can now use the app to manage your leads and conversations.
 
 ### WhatsApp Integration Flow
 1. WhatsApp webhook is configured to `/api/whatsapp/webhook` (with GET for verification and POST for message delivery).
