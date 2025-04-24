@@ -39,7 +39,12 @@ passport.use(
         console.log('Facebook profile:', profile);
 
         let existingUser = await mongoUserService.findOneMongo(
-          { $or: [{ providerId: facebookId }, { email }] },
+          {
+            $or: [
+              { provider: UserProvider.FACEBOOK },
+              { providerId: facebookId?.toString() },
+            ],
+          },
           { session: null }
         );
         console.log('Existing user:', existingUser);
@@ -70,7 +75,6 @@ passport.use(
             provider: UserProvider.FACEBOOK,
             token,
             providerId: facebookId,
-            facebookId,
           };
           const creation = await mongoUserService.updateOne(
             { _id },
