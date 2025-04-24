@@ -81,7 +81,7 @@ class TelegramAuthController {
 
         const createPayload = {
           userId: _id.toString(),
-          username: (username || `${first_name} ${last_name}`).toString(),
+          username: (username || `${first_name}${last_name}`).toString(),
           email: '',
           provider: UserProvider.TELEGRAM,
           token,

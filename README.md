@@ -121,6 +121,14 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 11. After successful login, you will be redirected back to the app with your Telegram account information.
 12. You can now use the app to manage your leads and conversations.
 
+### Whatsapp Webhook Integration Flow
+1. Go to this website in the browser: https://developers.facebook.com/apps/1350971909282292/whatsapp-business/wa-settings/?business_id=494503737743299&phone_number_id=
+2. Click on the Whatsapp -> Configuration on the side panel
+3. Add the ngrok URL in the webhook url: https://2b0f-102-90-80-62.ngrok-free.app/api/whatsapp/webhook
+4. add your verify token in the verify token field
+5. Click on the verify and save button
+6. You would get a response in your terminal -> ✅ WhatsApp webhook verified
+
 ### WhatsApp Integration Flow
 1. WhatsApp webhook is configured to `/api/whatsapp/webhook` (with GET for verification and POST for message delivery).
 2. Incoming WhatsApp messages are received by the `WhatsappController.handleUpdate` method.

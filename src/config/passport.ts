@@ -33,7 +33,7 @@ passport.use(
         const email = profile.emails?.[0]?.value ?? '';
         const username =
           profile.username ||
-          `${profile.name?.givenName ?? ''} ${
+          `${profile.name?.givenName ?? ''}${
             profile.name?.familyName ?? ''
           }`.trim();
         console.log('Facebook profile:', profile);
