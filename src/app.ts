@@ -25,10 +25,9 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-setInterval(monitorMaterialCenter, 60 * 1000);
+// setInterval(monitorMaterialCenter, 60 * 1000);
 
-// Run one immediately on startup
-monitorMaterialCenter();
+// monitorMaterialCenter();
 
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);

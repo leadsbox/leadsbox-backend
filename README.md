@@ -107,6 +107,16 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 4. The lead is stored in MongoDB using the `LeadService`.
 5. Auto-replies and follow-up scheduling are supported.
 
+### To log in to the app frontend, sign in using Telegram. 
+1. Open the leasdbox-frontend application
+2. run the FE localhost using ngrok - ngrok http 3000
+3. Open the app in your browser
+4. Click on the "Login with Telegram" button.
+5. The app will redirect you to the Telegram login page.
+6. Login using your Telegram account.
+7. After successful login, you will be redirected back to the app with your Telegram account information.
+8. You can now use the app to manage your leads and conversations.
+
 ### WhatsApp Integration Flow
 1. WhatsApp webhook is configured to `/api/whatsapp/webhook` (with GET for verification and POST for message delivery).
 2. Incoming WhatsApp messages are received by the `WhatsappController.handleUpdate` method.
