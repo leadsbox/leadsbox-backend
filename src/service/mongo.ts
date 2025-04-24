@@ -14,7 +14,7 @@ class MongoDBService<T extends mongoose.Document> {
     status: boolean,
     data: any = null,
     message = '',
-    error: any = null,
+    error: any = null
   ): DbResponse {
     return { status, data, message, error };
   }
@@ -50,7 +50,7 @@ class MongoDBService<T extends mongoose.Document> {
       return this.handleResponse(
         true,
         savedDoc,
-        'Document created successfully',
+        'Document created successfully'
       );
     } catch (error) {
       if (session) await this.abortTransaction();
@@ -58,14 +58,14 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to create document',
-        error,
+        error
       );
     }
   }
 
   async findById(
     id: mongoose.Types.ObjectId,
-    options?: DbOptions,
+    options?: DbOptions
   ): Promise<DbResponse<T>> {
     const session = options?.session || this.session || null;
     try {
@@ -78,7 +78,7 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to retrieve document',
-        error,
+        error
       );
     }
   }
@@ -104,7 +104,39 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to retrieve document',
-        error,
+        error
+      );
+    }
+  }
+
+  async findOneMongo(
+    query: mongoose.FilterQuery<T>,
+    options?: DbOptions
+  ): Promise<DbResponse<T>> {
+    const session = options?.session || this.session || null;
+    try {
+      let queryBuilder = this.model
+        .findOne(query)
+        .session(session) as mongoose.Query<T | null, T>;
+
+      if (options?.select) {
+        queryBuilder = queryBuilder.select(options.select) as mongoose.Query<
+          T | null,
+          T
+        >;
+      }
+
+      const doc = await queryBuilder.exec();
+
+      return doc
+        ? this.handleResponse(true, doc, 'Document found')
+        : this.handleResponse(false, null, 'Document not found');
+    } catch (error) {
+      return this.handleResponse(
+        false,
+        null,
+        'Failed to retrieve document',
+        error
       );
     }
   }
@@ -113,7 +145,7 @@ class MongoDBService<T extends mongoose.Document> {
     query: any = {},
     limit = 10,
     skip = 0,
-    options?: DbOptions,
+    options?: DbOptions
   ): Promise<DbResponse<T[]>> {
     const session = options?.session || this.session || null;
     try {
@@ -126,14 +158,14 @@ class MongoDBService<T extends mongoose.Document> {
       return this.handleResponse(
         true,
         docs,
-        'Documents retrieved successfully',
+        'Documents retrieved successfully'
       );
     } catch (error) {
       return this.handleResponse(
         false,
         [],
         'Failed to retrieve documents',
-        error,
+        error
       );
     }
   }
@@ -141,7 +173,7 @@ class MongoDBService<T extends mongoose.Document> {
   async updateOne(
     query: any,
     updateData: Partial<T>,
-    options?: DbOptions,
+    options?: DbOptions
   ): Promise<DbResponse<T>> {
     const session = options?.session || this.session || null;
     try {
@@ -159,7 +191,7 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to update document',
-        error,
+        error
       );
     }
   }
@@ -180,7 +212,7 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to delete document',
-        error,
+        error
       );
     }
   }
@@ -193,7 +225,7 @@ class MongoDBService<T extends mongoose.Document> {
         ? this.handleResponse(
             true,
             result,
-            `${result.deletedCount} documents deleted successfully`,
+            `${result.deletedCount} documents deleted successfully`
           )
         : this.handleResponse(false, null, 'No documents found to delete');
     } catch (error) {
@@ -202,7 +234,7 @@ class MongoDBService<T extends mongoose.Document> {
         false,
         null,
         'Failed to delete documents',
-        error,
+        error
       );
     }
   }

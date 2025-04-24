@@ -11,7 +11,6 @@ import { mailerService } from '../service/nodemailer';
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
     try {
-      const { username, email, password } = req.body;
       const validationResult = await AuthValidations.register(req.body);
       if (validationResult !== true) {
         return ResponseUtils.error(
@@ -20,6 +19,8 @@ class AuthController {
           StatusCode.BAD_REQUEST
         );
       }
+
+      const { username, email, password } = req.body;
 
       const usernameExists = await mongoUserService.findOne(
         { username },
@@ -99,18 +100,24 @@ class AuthController {
   }
 
   public async login(req: Request, res: Response): Promise<void> {
-    const { email, password } = req.body;
-    const validationResult = await AuthValidations.login(req.body);
-    if (validationResult !== true) {
-      return ResponseUtils.error(res, validationResult, StatusCode.BAD_REQUEST);
-    }
-
     try {
-      const user = await mongoUserService.findOne({ email });
+      const { identifier, password } = req.body;
+      const validationResult = await AuthValidations.login(req.body);
+      if (validationResult !== true) {
+        return ResponseUtils.error(
+          res,
+          validationResult,
+          StatusCode.BAD_REQUEST
+        );
+      }
+
+      const user = await mongoUserService.findOneMongo({
+        $or: [{ email: identifier }, { username: identifier }],
+      });
       if (!user.status) {
         return ResponseUtils.error(
           res,
-          'Email does not exist',
+          'User not found',
           StatusCode.UNAUTHORIZED
         );
       }

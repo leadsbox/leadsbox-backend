@@ -10,6 +10,7 @@ import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
 import telegramRoutes from './routes/telegram.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
+import { monitorMaterialCenter } from './utils/healthCheck';
 
 const app = express();
 app.use(express.json({
@@ -23,6 +24,11 @@ app.use(passport.initialize());
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
+
+setInterval(monitorMaterialCenter, 60 * 1000);
+
+// Run one immediately on startup
+monitorMaterialCenter();
 
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
