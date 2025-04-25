@@ -35,10 +35,6 @@ class WhatsappController {
     );
   }
 
-  /**
-   * POST /api/whatsapp/webhook
-   * Receive incoming messages and tag leads
-   */
   public async handleUpdate(req: Request, res: Response): Promise<void> {
     const rawBody = req.rawBody!;
     const sigHeader = req.get('x-hub-signature-256') || '';
@@ -74,6 +70,7 @@ class WhatsappController {
     for (const entry of body.entry || []) {
       for (const change of entry.changes || []) {
         const msg = change.value.messages?.[0];
+        console.log('WhatsApp message:', msg);
         if (!msg) continue;
 
         const text = msg.text?.body;
@@ -111,8 +108,6 @@ class WhatsappController {
 
     return ResponseUtils.success(res, null, 'Update processed', StatusCode.OK);
   }
-
-  // controllers/whatsapp.controller.ts
 
   public async connectWhatsapp(req: Request, res: Response) {
     const { accessToken } = req.body;

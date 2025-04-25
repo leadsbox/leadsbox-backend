@@ -127,7 +127,8 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 3. Add the ngrok URL in the webhook url: https://2b0f-102-90-80-62.ngrok-free.app/api/whatsapp/webhook
 4. add your verify token in the verify token field
 5. Click on the verify and save button
-6. You would get a response in your terminal -> ✅ WhatsApp webhook verified
+6. Subscribe to all he webhook events
+7. You would get a response in your terminal -> ✅ WhatsApp webhook verified
 
 ### WhatsApp Integration Flow
 1. WhatsApp webhook is configured to `/api/whatsapp/webhook` (with GET for verification and POST for message delivery).
