@@ -1,27 +1,35 @@
 import { mongoose, Schema } from '../config/db';
-import { ILead, DefaultDate } from '../types/leads';
+import { UserProvider } from '../types';
+import { LeadType, DefaultDate } from '../types/leads';
 import { TransactionSchema } from './transaction.model';
 
-export type LeadDocument = ILead & mongoose.Document;
+export type LeadDocument = LeadType & mongoose.Document;
 
 const LeadSchema = new Schema<LeadDocument>(
   {
     conversationId: { type: String, required: true },
     userId: { type: String, ref: 'User', required: true },
     transactions: { type: [TransactionSchema], default: [] },
+    provider: {
+      type: String,
+      required: true,
+      enum: Object.values(UserProvider),
+      unique: true,
+    },
+    providerId: { type: String, required: true },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     id: false,
-  },
+  }
 );
 
 LeadSchema.set('toJSON', {
   transform: function (
     doc: mongoose.Document,
-    ret: Partial<LeadDocument & DefaultDate>,
+    ret: Partial<LeadDocument & DefaultDate>
   ) {
     if (ret.createdAt) {
       ret.createdAt = ret.createdAt.toISOString() as any;

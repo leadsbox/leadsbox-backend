@@ -41,8 +41,9 @@ class LeadController {
     }
   }
 
-  public async tagConversation(message: string): Promise<LeadLabel | undefined> {
+  public async tagConversation(message: string): Promise<LeadLabel> {
     const lowerMessage = message.toLowerCase();
+    console.log('Tagging conversation with message:', lowerMessage);
 
     if (
       lowerMessage.includes('cancel') ||
@@ -101,7 +102,10 @@ class LeadController {
       lowerMessage.includes('inquiry') ||
       lowerMessage.includes('question') ||
       lowerMessage.includes('info') ||
-      lowerMessage.includes('enquiry')
+      lowerMessage.includes('enquiry') ||
+      lowerMessage.includes('how much') ||
+      lowerMessage.includes('what is the price') 
+
     ) {
       return LeadLabel.NEW_INQUIRY;
     }
@@ -170,7 +174,7 @@ class LeadController {
       return LeadLabel.NOT_A_LEAD;
     }
 
-    return undefined;
+    return LeadLabel.NOT_A_LEAD;
   }
 
   /**

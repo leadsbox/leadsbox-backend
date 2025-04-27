@@ -1,13 +1,17 @@
-export interface ITransaction {
+import { UserProvider } from "./user";
+
+export interface TransactionType {
   tag: string;
   notes: string;
   createdAt?: Date;
 }
 
-export interface ILead {
+export interface LeadType {
   conversationId: string;
   userId: string;
-  transactions: ITransaction[];
+  transactions: TransactionType[];
+  provider: UserProvider
+  providerId: string;
 }
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };
@@ -25,5 +29,5 @@ export enum LeadLabel {
   PARTNERSHIP_OPPORTUNITY = 'Partnership Opportunity',
   FEEDBACK = 'Feedback',
   ENGAGED = 'Engaged',
-  NOT_A_LEAD = 'Not a Lead'
+  NOT_A_LEAD = 'Not a Lead',
 }

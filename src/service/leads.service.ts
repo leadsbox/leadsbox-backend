@@ -6,13 +6,13 @@ export class LeadService {
    */
   public static async updateConversationTag(
     conversationId: string,
-    tag: string,
+    tag: string
   ): Promise<any> {
     try {
       const updatedLead = await LeadModel.findOneAndUpdate(
         { conversationId },
         { tag },
-        { new: true },
+        { new: true }
       );
       return updatedLead;
     } catch (error) {
@@ -26,7 +26,7 @@ export class LeadService {
    */
   public static async updateLeadTag(
     conversationId: string,
-    tag: string,
+    tag: string
   ): Promise<any> {
     return this.updateConversationTag(conversationId, tag);
   }
@@ -93,40 +93,6 @@ export class LeadService {
       return lead;
     } catch (error) {
       console.error('Error storing WhatsApp lead:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * (Unchanged) Stores a Telegram lead.
-   */
-  public static async storeTelegramLead(
-    chatId: number | string,
-    userId: string,
-    message: string,
-    tag: string,
-  ): Promise<any> {
-    try {
-      const newTransaction = {
-        tag,
-        notes: message,
-        createdAt: new Date(),
-      };
-
-      let lead = await LeadModel.findOne({ conversationId: chatId });
-      if (!lead) {
-        lead = await LeadModel.create({
-          conversationId: chatId,
-          userId: userId,
-          transactions: [newTransaction],
-        });
-      } else {
-        lead.transactions.push(newTransaction);
-        await lead.save();
-      }
-      return lead;
-    } catch (error) {
-      console.error('Error storing Telegram lead:', error);
       throw error;
     }
   }

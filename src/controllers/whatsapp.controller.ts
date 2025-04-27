@@ -5,6 +5,9 @@ import { LeadCtrl } from './leads.controller';
 import { ResponseUtils } from '../utils/reponse';
 import crypto from 'crypto';
 import { WhatsappService } from '../service/whatsapp.service';
+import { LeadLabel } from '../types/leads';
+import { mongoLeadService } from '../service/mongo';
+import { UserProvider } from '../types';
 declare module 'express-serve-static-core' {
   interface Request {
     rawBody?: Buffer;
@@ -82,23 +85,24 @@ class WhatsappController {
           continue;
         }
 
-        try {
-          await LeadService.storeWhatsAppLead({
-            conversationId: convId,
-            userId,
-            message: text || '',
-            tag: 'New',
-          });
-        } catch (err) {
-          console.error('Error storing WhatsApp lead:', err);
-        }
-
         if (text) {
           try {
-            const newTag =
-              (await LeadCtrl.tagConversation(text)) || 'Uncategorized';
-            await LeadService.updateLeadTag(convId, newTag);
-            console.log(`WhatsApp lead ${convId} tagged as ${newTag}`);
+            const tag = await LeadCtrl.tagConversation(text);
+            console.log('Determined tag:', tag);
+            
+            if (tag !== LeadLabel.NOT_A_LEAD) {
+              await mongoLeadService.create({
+                conversationId: convId,
+                providerId: userId,
+                provider: UserProvider.WHATSAPP,
+                transactions: [
+                  {
+                    tag: tag,
+                    notes: text,
+                  },
+                ],
+              });
+            }
           } catch (err) {
             console.error('Error tagging WhatsApp lead:', err);
           }

@@ -1,4 +1,5 @@
 import { ClientSession, Model, mongoose } from '../config/db';
+import { LeadDocument, LeadModel } from '../models/leads.model';
 import { UserDocument, UserModel } from '../models/user.model';
 import { DbOptions, DbResponse } from '../types/mongo';
 
@@ -241,4 +242,4 @@ class MongoDBService<T extends mongoose.Document> {
 }
 
 export const mongoUserService = new MongoDBService<UserDocument>(UserModel);
-// export const mongoBookService = new MongoDBService<BookDocument>(BookModel);
+export const mongoLeadService = new MongoDBService<LeadDocument>(LeadModel);
