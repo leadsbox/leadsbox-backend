@@ -1,22 +1,22 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import { WhatsappConnectionType } from '../types';
 
-export interface IWhatsappConnection extends Document {
-  userId: mongoose.Types.ObjectId;
-  wabaId: string;
-  phoneNumberId: string;
-  accessToken: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type WhatsappConnectionDocument = WhatsappConnectionType &
+  mongoose.Document;
 
-const WhatsappConnectionSchema = new Schema<IWhatsappConnection>({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  wabaId: { type: String, required: true },
-  phoneNumberId: { type: String, required: true },
-  accessToken: { type: String, required: true },
-}, { timestamps: true });
+const WhatsappConnectionSchema = new Schema<WhatsappConnectionDocument>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    wabaId: { type: String, required: true },
+    phoneNumberId: { type: String, required: true },
+    accessToken: { type: String, required: true },
+  },
+  { timestamps: true }
+);
 
-export const WhatsappConnection = mongoose.model<IWhatsappConnection>(
+const WhatsappConnection = mongoose.model<WhatsappConnectionDocument>(
   'WhatsappConnection',
   WhatsappConnectionSchema
 );
+
+export { WhatsappConnection, WhatsappConnectionSchema };

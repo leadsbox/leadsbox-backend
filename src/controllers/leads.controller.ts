@@ -4,31 +4,40 @@ import { StatusCode } from '../types/response';
 import { LeadService } from '../service/leads.service';
 import { LeadModel } from '../models/leads.model';
 import { LeadLabel } from '../types/leads';
+import LeadValidations from '../validations/lead.validation';
+import { mongoLeadService } from '../service/mongo';
+import { UserProvider } from '../types';
 
 class LeadController {
   /**
    * Update or assign a tag to a conversation (lead).
    */
   public async updateTag(req: Request, res: Response): Promise<void> {
-    const { conversationId } = req.params;
-    const { tag } = req.body;
-    if (!tag) {
-      return ResponseUtils.error(
-        res,
-        'Tag is required',
-        StatusCode.BAD_REQUEST,
-      );
+    const validationResult = await LeadValidations.updateTag(req.body);
+    if (validationResult !== true) {
+      return ResponseUtils.error(res, validationResult, StatusCode.BAD_REQUEST);
     }
+
+    const { conversationId, tag, provider, providerId } = req.body;
+
     try {
-      const updatedLead = await LeadService.updateConversationTag(
-        conversationId,
-        tag,
+      const updatedLead = await mongoLeadService.updateOne(
+        { conversationId },
+        {
+          provider,
+          providerId,
+          transactions: [
+            {
+              tag: tag,
+            },
+          ],
+        }
       );
       return ResponseUtils.success(
         res,
         { updatedLead },
         'Lead tag updated successfully',
-        StatusCode.OK,
+        StatusCode.OK
       );
     } catch (error: any) {
       console.error('Error updating lead tag:', error);
@@ -36,11 +45,16 @@ class LeadController {
         res,
         'Failed to update lead tag',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }
 
+  /**
+   * Tag a conversation based on the message content.
+   * @param message The message content to analyze.
+   * @returns The determined lead label.
+   */
   public async tagConversation(message: string): Promise<LeadLabel> {
     const lowerMessage = message.toLowerCase();
     console.log('Tagging conversation with message:', lowerMessage);
@@ -104,8 +118,7 @@ class LeadController {
       lowerMessage.includes('info') ||
       lowerMessage.includes('enquiry') ||
       lowerMessage.includes('how much') ||
-      lowerMessage.includes('what is the price') 
-
+      lowerMessage.includes('what is the price')
     ) {
       return LeadLabel.NEW_INQUIRY;
     }
@@ -187,7 +200,7 @@ class LeadController {
         res,
         { leads },
         'Leads retrieved successfully',
-        StatusCode.OK,
+        StatusCode.OK
       );
     } catch (error: any) {
       console.error('Error retrieving leads:', error);
@@ -195,7 +208,7 @@ class LeadController {
         res,
         'Failed to retrieve leads',
         StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error,
+        error.message || error
       );
     }
   }

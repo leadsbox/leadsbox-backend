@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { WhatsappConnection, IWhatsappConnection } from '../models/whatsappConnection.model';
+import { WhatsappConnection } from '../models/whatsappConnection.model';
+import { WhatsappConnectionType } from '../types';
 
 export class WhatsappService {
   static async getBusinessAccounts(accessToken: string) {
@@ -20,12 +21,17 @@ export class WhatsappService {
     return data;
   }
 
-  static async saveConnection({ userId, wabaId, phoneNumberId, accessToken }: {
-    userId: string;
+  static async saveConnection({
+    userId,
+    wabaId,
+    phoneNumberId,
+    accessToken,
+  }: {
+    userId?: string;
     wabaId: string;
     phoneNumberId: string;
     accessToken: string;
-  }): Promise<IWhatsappConnection> {
+  }): Promise<WhatsappConnectionType> {
     return WhatsappConnection.findOneAndUpdate(
       { userId, wabaId, phoneNumberId },
       { accessToken },

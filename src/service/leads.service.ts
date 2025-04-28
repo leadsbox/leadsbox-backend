@@ -61,39 +61,4 @@ export class LeadService {
     }
   }
 
-  /**
-   * Stores an incoming WhatsApp lead as a new transaction in the same way
-   * you do for Telegram. Accepts an object so you can pass named params.
-   */
-  public static async storeWhatsAppLead(params: {
-    conversationId: string;
-    userId: string;
-    message: string;
-    tag: string;
-  }): Promise<any> {
-    const { conversationId, userId, message, tag } = params;
-    const newTransaction = {
-      tag,
-      notes: message,
-      createdAt: new Date(),
-    };
-
-    try {
-      let lead = await LeadModel.findOne({ conversationId });
-      if (!lead) {
-        lead = await LeadModel.create({
-          conversationId,
-          userId,
-          transactions: [newTransaction],
-        });
-      } else {
-        lead.transactions.push(newTransaction);
-        await lead.save();
-      }
-      return lead;
-    } catch (error) {
-      console.error('Error storing WhatsApp lead:', error);
-      throw error;
-    }
-  }
 }

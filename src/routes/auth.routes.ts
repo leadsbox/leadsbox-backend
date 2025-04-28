@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import passport from 'passport';
-import { FacebookAuthCtrl } from '../controllers/facebookAuth.controller';
-import { TelegramAuthCtrl } from '../controllers/telegramAuth.controller';
+import { FacebookAuthCtrl } from '../controllers/facebook.controller';
 import { AuthCtrl } from '../controllers/auth.controller';
+import { TelegramCtrl, WhatsappCtrl } from '../controllers';
 
 const router = Router();
 
+// Facebook authentication
 router.get(
   '/facebook',
   passport.authenticate('facebook', {
@@ -17,7 +18,6 @@ router.get(
     ],
   })
 );
-
 router.get(
   '/facebook/callback',
   passport.authenticate('facebook', { session: false }),
@@ -26,8 +26,14 @@ router.get(
   }
 );
 
-router.get('/telegram/sign-in', TelegramAuthCtrl.signIn.bind(TelegramAuthCtrl));
+// Telegram authentication
+router.get('/telegram/sign-in', TelegramCtrl.signIn.bind(TelegramCtrl));
 
+// Whatsapp authentication
+router.get('/auth/whatsapp',        WhatsappCtrl.startLogin);     
+router.get('/auth/whatsapp/callback', WhatsappCtrl.handleCallback); 
+
+// Leadsbox authentication
 router.post('/login', AuthCtrl.login);
 router.post('/register', AuthCtrl.register);
 

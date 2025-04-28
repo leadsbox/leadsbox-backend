@@ -1,0 +1,6 @@
+export * from './telegram.controller'
+export * from './facebook.controller'
+export * from './auth.controller'
+export * from './leads.controller'
+export * from './whatsapp.controller'
+export * from './instagram.controller'

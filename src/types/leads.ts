@@ -2,7 +2,7 @@ import { UserProvider } from "./user";
 
 export interface TransactionType {
   tag: string;
-  notes: string;
+  notes?: string;
   createdAt?: Date;
 }
 
