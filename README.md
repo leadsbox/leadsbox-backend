@@ -138,6 +138,46 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 5. The lead is stored in MongoDB using the `LeadService`.
 6. Auto-replies and follow-up scheduling are supported.
 
+### WhatsApp Cloud API **Account‑Linking** Flow (OAuth)
+1. Front‑end hits `/api/auth/whatsapp/login`; backend redirects the user to the Facebook OAuth dialog with required scopes (`whatsapp_business_management`, `whatsapp_business_messaging`, `business_management`).
+2. After consent, Meta redirects to `/api/auth/whatsapp/callback` with `code` and `state`.
+3. Backend exchanges the `code` for a user access token → finds the user’s Business Manager → picks a WhatsApp Business Account (WABA) → picks a phone number → stores the connection → registers the webhook.
+
+### **Connecting a WhatsApp Business Account in Dev (step‑by‑step)**
+*(This is what you’ll do the very first time using ngrok.)*
+
+1. **Expose the backend locally**
+   ```bash
+   ngrok http 3010   # 3010 is your Express port
+   # e.g. https://3d8a-102-36-149-177.ngrok-free.app
+   ```
+2. **Meta App › Settings → Basic**
+   - **App Domains:** `3d8a-102-36-149-177.ngrok-free.app`
+   - **Add Platform → Website → Site URL:** `https://3d8a-102-36-149-177.ngrok-free.app`
+3. **Facebook Login → Settings**
+   - **Client OAuth Login:** ON  │  **Web OAuth Login:** ON
+   - **Valid OAuth Redirect URIs:**
+     ```
+     https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback
+     ```
+4. **WhatsApp → Getting Started / Configuration**
+   - If you don’t have a WABA yet, click **Create WhatsApp Business Account** — Meta will generate a *test* WABA and phone number automatically.
+   - Under **Webhook** paste: `https://3d8a-102-36-149-177.ngrok-free.app/api/whatsapp/webhook` and **Verify**.
+5. **Assign Roles**
+   - In **Business Settings → WhatsApp Accounts** add your Facebook profile as **Admin** to the WABA so the API can list it.
+6. **Environment variables** (`.env`)
+   ```env
+   WHATSAPP_REDIRECT_URI=https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback
+   FACEBOOK_APP_ID=<your‑app‑id>
+   FACEBOOK_APP_SECRET=<your‑app‑secret>
+   ```
+7. **Restart** the backend (`npm run dev`) and visit `/api/auth/whatsapp/login` in the browser. Approve permissions.
+8. The callback handler will log business, WABA and phone number IDs and respond **"WhatsApp account linked"**.
+9. Send a test message to the test number; the webhook delivers the payload to `/api/whatsapp/webhook` and Leadsbox stores the lead.
+
+> **Tip:** Free ngrok tunnels reset each time; either reserve a domain (ngrok paid) or repeat steps 1‑4 whenever the URL changes.
+
+
 ## Lead Tagging
 
 Leads are tagged using a robust set of labels defined in the `LeadLabel` enum (see `src/types/leads.ts`). Tagging is keyword-driven and can be easily extended for new categories.
