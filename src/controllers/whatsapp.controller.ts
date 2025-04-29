@@ -139,10 +139,8 @@ class WhatsappController {
   }
 
   public async handleCallback(req: Request, res: Response): Promise<void> {
-    const { code, state } = req.query as { code?: string; state?: string };
-    console.log('WhatsApp callback received:', req.query);
-
-    if (!code || !state || req.cookies.wa_oauth_state !== state) {
+    const { code, state } = req.query as Record<string, string | undefined>;
+    if (!code || !state || state !== req.cookies.wa_oauth_state) {
       return ResponseUtils.error(
         res,
         'Invalid OAuth state',
@@ -150,53 +148,84 @@ class WhatsappController {
       );
     }
 
-    const tokenResp = await axios.get(
-      'https://graph.facebook.com/v19.0/oauth/access_token',
-      {
-        params: {
-          client_id: process.env.FACEBOOK_APP_ID,
-          client_secret: process.env.FACEBOOK_APP_SECRET,
-          redirect_uri: process.env.WHATSAPP_REDIRECT_URI,
-          code,
-        },
+    try {
+      /* Token exchange (unchanged) */
+      const { data: tokenData } = await axios.get(
+        'https://graph.facebook.com/v19.0/oauth/access_token',
+        {
+          params: {
+            client_id: process.env.FACEBOOK_APP_ID,
+            client_secret: process.env.FACEBOOK_APP_SECRET,
+            redirect_uri: process.env.WHATSAPP_REDIRECT_URI,
+            code,
+          },
+        }
+      );
+      const accessToken = tokenData.access_token;
+
+      /* ①  Businesses the user can access */
+      const bizList = await WhatsappService.getBusinesses(accessToken);
+      const businessId = bizList.data?.[0]?.id;
+      if (!businessId) {
+        return ResponseUtils.error(
+          res,
+          'User is not an admin of any Business Manager',
+          StatusCode.BAD_REQUEST
+        );
       }
-    );
-    console.log('WhatsApp accessToken response:', tokenResp.data);
-    const accessToken = tokenResp.data.access_token;
-    console.log('Got accessToken:', accessToken);
 
-    const bizAcc = await WhatsappService.getBusinessAccounts(accessToken);
-    console.log('Business accounts:', bizAcc);
-    const wabaId = bizAcc?.data?.[0]?.id ?? bizAcc?.[0]?.id;
-    if (!wabaId)
-      return ResponseUtils.error(res, 'No WABA found', StatusCode.BAD_REQUEST);
+      /* ②  WhatsApp Business Accounts inside that Business */
+      const wabaList = await WhatsappService.getBusinessAccounts(
+        businessId,
+        accessToken
+      );
+      const wabaId = wabaList.data?.[0]?.id;
+      if (!wabaId) {
+        return ResponseUtils.error(
+          res,
+          'No WhatsApp Business Account found in that Business',
+          StatusCode.BAD_REQUEST
+        );
+      }
 
-    const numbers = await WhatsappService.getPhoneNumbers(wabaId, accessToken);
-    const phoneId = numbers?.data?.[0]?.id ?? numbers?.[0]?.id;
-    if (!phoneId)
+      /* ③  Phone numbers inside that WABA */
+      const phoneList = await WhatsappService.getPhoneNumbers(
+        wabaId,
+        accessToken
+      );
+      const phoneId = phoneList.data?.[0]?.id;
+      if (!phoneId) {
+        return ResponseUtils.error(
+          res,
+          'No phone number found in the WABA',
+          StatusCode.BAD_REQUEST
+        );
+      }
+
+      /* ④  Persist + webhook */
+      const user = req.user as UserType | undefined;
+      await WhatsappService.saveConnection({
+        userId: user?._id,
+        wabaId,
+        phoneNumberId: phoneId,
+        accessToken,
+      });
+      await WhatsappService.registerWebhook(wabaId, accessToken);
+
+      return ResponseUtils.success(
+        res,
+        null,
+        'WhatsApp account linked',
+        StatusCode.OK
+      );
+    } catch (err: any) {
+      console.error('Graph error:', err.response?.data || err.message);
       return ResponseUtils.error(
         res,
-        'No phone number found',
+        err.response?.data?.error?.message || 'Graph API request failed',
         StatusCode.BAD_REQUEST
       );
-
-    const user = req.user as UserType | undefined;
-    const userId = user?._id;
-    await WhatsappService.saveConnection({
-      userId,
-      wabaId,
-      phoneNumberId: phoneId,
-      accessToken,
-    });
-
-    await WhatsappService.registerWebhook(wabaId, accessToken);
-
-    return ResponseUtils.success(
-      res,
-      null,
-      'WhatsApp account linked',
-      StatusCode.OK
-    );
+    }
   }
 }
 
