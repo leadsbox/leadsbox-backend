@@ -11,15 +11,20 @@ import authRoutes from './routes/auth.routes';
 import telegramRoutes from './routes/telegram.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
 import { monitorMaterialCenter } from './utils/healthCheck';
+import cookieParser from 'cookie-parser';
 
 const app = express();
-app.use(express.json({
-  verify: (req, _res, buf) => {
-    // @ts-ignore
-    req.rawBody = buf;
-  }
-}));app.use(cors());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      // @ts-ignore
+      req.rawBody = buf;
+    },
+  })
+);
+app.use(cors());
 app.use(passport.initialize());
+app.use(cookieParser());
 
 app.get('/', (req, res) => {
   res.send('API is running...');
@@ -44,7 +49,7 @@ if (process.env.NODE_ENV !== 'test') {
         .then(() => {
           app.listen(PORT, () => {
             console.log(
-              `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`,
+              `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
             );
           });
         })

@@ -114,8 +114,9 @@ class WhatsappController {
   }
 
   public startLogin(req: Request, res: Response): void {
-    const state = crypto.randomBytes(16).toString('hex'); 
-    const redirectUri = process.env.WHATSAPP_REDIRECT_URI!; 
+    const state = crypto.randomBytes(16).toString('hex');
+    const redirectUri =
+      'https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback';
 
     res.cookie('wa_oauth_state', state, { httpOnly: true, secure: true });
 
@@ -139,39 +140,64 @@ class WhatsappController {
 
   public async handleCallback(req: Request, res: Response): Promise<void> {
     const { code, state } = req.query as { code?: string; state?: string };
+    console.log('WhatsApp callback received:', req.query);
 
     if (!code || !state || req.cookies.wa_oauth_state !== state) {
-      return ResponseUtils.error(res, 'Invalid OAuth state', StatusCode.BAD_REQUEST);
+      return ResponseUtils.error(
+        res,
+        'Invalid OAuth state',
+        StatusCode.BAD_REQUEST
+      );
     }
 
-    const tokenResp = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
-      params: {
-        client_id:     process.env.FACEBOOK_APP_ID,
-        client_secret: process.env.FACEBOOK_APP_SECRET,
-        redirect_uri:  process.env.WHATSAPP_REDIRECT_URI,
-        code
+    const tokenResp = await axios.get(
+      'https://graph.facebook.com/v19.0/oauth/access_token',
+      {
+        params: {
+          client_id: process.env.FACEBOOK_APP_ID,
+          client_secret: process.env.FACEBOOK_APP_SECRET,
+          redirect_uri: process.env.WHATSAPP_REDIRECT_URI,
+          code,
+        },
       }
-    });
+    );
     console.log('WhatsApp accessToken response:', tokenResp.data);
-    const accessToken = tokenResp.data.access_token;           
+    const accessToken = tokenResp.data.access_token;
+    console.log('Got accessToken:', accessToken);
 
-    const bizAcc  = await WhatsappService.getBusinessAccounts(accessToken);
-    const wabaId  = bizAcc?.data?.[0]?.id;
-    if (!wabaId)  return ResponseUtils.error(res,'No WABA found',StatusCode.BAD_REQUEST);
+    const bizAcc = await WhatsappService.getBusinessAccounts(accessToken);
+    console.log('Business accounts:', bizAcc);
+    const wabaId = bizAcc?.data?.[0]?.id ?? bizAcc?.[0]?.id;
+    if (!wabaId)
+      return ResponseUtils.error(res, 'No WABA found', StatusCode.BAD_REQUEST);
 
     const numbers = await WhatsappService.getPhoneNumbers(wabaId, accessToken);
-    const phoneId = numbers?.data?.[0]?.id;
-    if (!phoneId) return ResponseUtils.error(res,'No phone number found',StatusCode.BAD_REQUEST);
+    const phoneId = numbers?.data?.[0]?.id ?? numbers?.[0]?.id;
+    if (!phoneId)
+      return ResponseUtils.error(
+        res,
+        'No phone number found',
+        StatusCode.BAD_REQUEST
+      );
 
     const user = req.user as UserType | undefined;
-    const userId = user?._id;               
-    await WhatsappService.saveConnection({ userId, wabaId, phoneNumberId: phoneId, accessToken });
+    const userId = user?._id;
+    await WhatsappService.saveConnection({
+      userId,
+      wabaId,
+      phoneNumberId: phoneId,
+      accessToken,
+    });
 
     await WhatsappService.registerWebhook(wabaId, accessToken);
 
-    return ResponseUtils.success(res, null, 'WhatsApp account linked', StatusCode.OK);
+    return ResponseUtils.success(
+      res,
+      null,
+      'WhatsApp account linked',
+      StatusCode.OK
+    );
   }
-
 }
 
 export const WhatsappCtrl = new WhatsappController();
