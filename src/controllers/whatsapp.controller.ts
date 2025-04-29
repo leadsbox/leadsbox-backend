@@ -120,7 +120,7 @@ class WhatsappController {
     res.cookie('wa_oauth_state', state, { httpOnly: true, secure: true });
 
     const url = new URL('https://www.facebook.com/v19.0/dialog/oauth');
-    url.searchParams.set('client_id', process.env.WHATSAPP_APP_ID!);
+    url.searchParams.set('client_id', process.env.FACEBOOK_APP_ID!);
     url.searchParams.set('redirect_uri', redirectUri);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set(
@@ -132,6 +132,7 @@ class WhatsappController {
       ].join(',')
     );
     url.searchParams.set('state', state);
+    console.log('Redirecting to WhatsApp login:', url.toString());
 
     res.redirect(url.toString());
   }
@@ -145,12 +146,13 @@ class WhatsappController {
 
     const tokenResp = await axios.get('https://graph.facebook.com/v19.0/oauth/access_token', {
       params: {
-        client_id:     process.env.WHATSAPP_APP_ID,
-        client_secret: process.env.WHATSAPP_APP_SECRET,
+        client_id:     process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
         redirect_uri:  process.env.WHATSAPP_REDIRECT_URI,
         code
       }
     });
+    console.log('WhatsApp accessToken response:', tokenResp.data);
     const accessToken = tokenResp.data.access_token;           
 
     const bizAcc  = await WhatsappService.getBusinessAccounts(accessToken);

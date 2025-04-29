@@ -30,8 +30,8 @@ router.get(
 router.get('/telegram/sign-in', TelegramCtrl.signIn.bind(TelegramCtrl));
 
 // Whatsapp authentication
-router.get('/auth/whatsapp',        WhatsappCtrl.startLogin);     
-router.get('/auth/whatsapp/callback', WhatsappCtrl.handleCallback); 
+router.get('/whatsapp', WhatsappCtrl.startLogin);
+router.get('/whatsapp/callback', WhatsappCtrl.handleCallback);
 
 // Leadsbox authentication
 router.post('/login', AuthCtrl.login);
