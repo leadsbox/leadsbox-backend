@@ -52,6 +52,7 @@ class GoogleAuthController {
     const redirectUrl = `${clientUrl}/google?token=${encodeURIComponent(
       user.token
     )}`;
+    console.log('Redirecting to:', redirectUrl);
 
     return res.redirect(redirectUrl);
   }

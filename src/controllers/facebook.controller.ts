@@ -17,6 +17,7 @@ class FacebookAuthController {
     const redirectUrl = `${clientUrl}/facebook?token=${encodeURIComponent(
       user.token
     )}`;
+    console.log('Redirecting to:', redirectUrl);
 
     return res.redirect(redirectUrl);
   }
