@@ -41,11 +41,11 @@ class WhatsappController {
   public async handleUpdate(req: Request, res: Response): Promise<void> {
     const rawBody = req.rawBody!;
     const sigHeader = req.get('x-hub-signature-256') || '';
-    if (process.env.APP_SECRET) {
+    if (process.env.FACEBOOK_APP_SECRET) {
       const expected =
         'sha256=' +
         crypto
-          .createHmac('sha256', process.env.APP_SECRET)
+          .createHmac('sha256', process.env.FACEBOOK_APP_SECRET)
           .update(rawBody)
           .digest('hex');
 
