@@ -6,6 +6,7 @@ import { mongoUserService } from '../service/mongo';
 import { Toolbox } from '../utils/tools';
 import { CryptoUtils } from '../utils/crypto';
 import { mongoose } from './db';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 passport.serializeUser((user: any, done) => {
   done(null, user.id);
@@ -115,6 +116,93 @@ passport.use(
       } catch (error) {
         console.error('Facebook auth error:', error);
         return done(error as Error, null);
+      }
+    }
+  )
+);
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      callbackURL: process.env.GOOGLE_REDIRECT_URI as string,
+    },
+    async (accessToken, _refreshToken, profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        if (!email) return done(new Error('No email returned'), false);
+        console.log('Google profile:', profile);
+
+        let existingUser = await mongoUserService.findOneMongo(
+          {
+            $or: [{ provider: UserProvider.GOOGLE }, { email }],
+          },
+          { session: null }
+        );
+        if (!existingUser.status || !existingUser.data) {
+          const _id = new mongoose.Types.ObjectId();
+
+          const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
+          const Auth = {
+            PUBLIC_KEY,
+            ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+              PRIVATE_KEY,
+              process.env.JWT_SECRET as string
+            ),
+          };
+
+          const token = await Toolbox.createToken({
+            userId: _id.toString(),
+            email,
+            username: profile.displayName || email.split('@')[0],
+            provider: UserProvider.GOOGLE,
+            Auth,
+          });
+
+          const createPayload = {
+            userId: _id.toString(),
+            username: profile.displayName || email.split('@')[0],
+            email,
+            provider: UserProvider.GOOGLE,
+            token,
+            providerId: profile.id,
+          };
+
+          const creation = await mongoUserService.updateOne(
+            { _id },
+            createPayload
+          );
+          if (!creation.status || !creation.data) {
+            throw new Error('Failed to create Google user');
+          }
+          existingUser = creation;
+        }
+        const userData = existingUser.data!;
+        const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
+        const Auth = {
+          PUBLIC_KEY,
+          ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+            PRIVATE_KEY,
+            process.env.JWT_SECRET as string
+          ),
+        };
+        const token = await Toolbox.createToken({
+          userId: userData.userId,
+          email: userData.email,
+          username: userData.username,
+          provider: userData.provider,
+          Auth,
+        });
+        await mongoUserService.updateOne({ _id: userData._id }, { token });
+        const userWithToken = {
+          ...userData,
+          token,
+          PUBLIC_KEY,
+        };
+        return done(null, userWithToken);
+      } catch (err) {
+        done(err as any, false);
       }
     }
   )

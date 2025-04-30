@@ -31,6 +31,7 @@
     "mongoose": "^8.13.1",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2",
     "uuid": "^11.1.0"
@@ -42,6 +43,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/passport": "^1.0.17",
     "@types/passport-facebook": "^3.0.3",
+    "@types/passport-google-oauth20": "^2.0.16",
     "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9"
   }

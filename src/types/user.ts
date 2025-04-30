@@ -1,11 +1,12 @@
 import { mongoose } from '../config/db';
+import { UserProvider } from './provider';
 
 export type UserType = {
   _id?: string;
   userId: string | mongoose.Types.ObjectId;
   username: string;
   email: string;
-  password: string;
+  password: string | null;
   token?: string;
   provider?: UserProvider
   providerId?: string;
@@ -20,12 +21,3 @@ export interface TokenPayload {
   exp?: number;
 }
 
-export enum UserProvider {
-  LEADSBOX = 'LeadsBox',
-  FACEBOOK = 'Facebook',
-  INSTAGRAM = 'Instagram',
-  TELEGRAM = 'Telegram',
-  WHATSAPP = 'WhatsApp',
-  TWITTER = 'Twitter',
-  GOOGLE = 'Google',
-}

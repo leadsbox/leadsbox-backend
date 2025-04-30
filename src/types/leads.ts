@@ -1,4 +1,4 @@
-import { UserProvider } from "./user";
+import { UserProvider } from "./provider";
 
 export interface TransactionType {
   tag: string;

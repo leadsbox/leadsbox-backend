@@ -1,5 +1,6 @@
 import { mongoose } from '../config/db';
-import { UserType, DefaultDate, UserProvider } from '../types/user';
+import { UserProvider } from '../types';
+import { UserType, DefaultDate } from '../types/user';
 
 export type UserDocument = UserType & mongoose.Document;
 
