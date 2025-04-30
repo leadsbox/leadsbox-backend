@@ -130,7 +130,7 @@ class AuthController {
 
       if (
         user.data &&
-        !CryptoUtils.checkPassword(password, user.data.password)
+        !CryptoUtils.checkPassword(password, user.data.password ?? '')
       ) {
         return ResponseUtils.error(
           res,

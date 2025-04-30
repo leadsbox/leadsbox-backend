@@ -109,7 +109,7 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 
 ### To log in to the app frontend, sign in using Telegram. 
 1. Open the leasdbox-frontend application
-2. run the FE localhost using ngrok - ngrok http 3000
+2. run the FE localhost using ngrok - ngrok http 3010
 3. Copy the ngrok URl and paste it in the bot settings in telegram
 4. Open the telergam and go to botfather
 5. Type /setdomain and paste the ngrok URL

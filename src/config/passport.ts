@@ -115,7 +115,7 @@ passport.use(
         return done(null, userWithToken);
       } catch (error) {
         console.error('Facebook auth error:', error);
-        return done(error as Error, null);
+        return done(error as Error, false);
       }
     }
   )
@@ -202,7 +202,8 @@ passport.use(
         };
         return done(null, userWithToken);
       } catch (err) {
-        done(err as any, false);
+        console.error('Google auth error:', err);
+        return done(err as Error, false);
       }
     }
   )

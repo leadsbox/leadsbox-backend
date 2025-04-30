@@ -7,6 +7,10 @@ export class CryptoUtils {
     return crypto.createHash('sha512').update(password).digest('hex');
   }
 
+  static randomHex(bytes = 16): string {
+    return this.createRandomBytes(bytes);
+  }  
+
   static generateUserKeyPair() {
     const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
       modulusLength: 2048,
