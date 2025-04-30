@@ -1,5 +1,6 @@
 import { ClientSession, Model, mongoose } from '../config/db';
 import { LeadDocument, LeadModel } from '../models/leads.model';
+import { ProviderDocument, ProviderModel } from '../models/provider';
 import { UserDocument, UserModel } from '../models/user.model';
 import { DbOptions, DbResponse } from '../types/mongo';
 
@@ -243,3 +244,6 @@ class MongoDBService<T extends mongoose.Document> {
 
 export const mongoUserService = new MongoDBService<UserDocument>(UserModel);
 export const mongoLeadService = new MongoDBService<LeadDocument>(LeadModel);
+export const mongoProviderService = new MongoDBService<ProviderDocument>(
+  ProviderModel
+);
