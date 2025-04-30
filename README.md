@@ -143,6 +143,48 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 2. After consent, Meta redirects to `/api/auth/whatsapp/callback` with `code` and `state`.
 3. Backend exchanges the `code` for a user access token → finds the user’s Business Manager → picks a WhatsApp Business Account (WABA) → picks a phone number → stores the connection → registers the webhook.
 
+WhatsApp Cloud API Account‑Linking Flow (OAuth)
+
+Leadsbox uses a five‑step wizard so each user can pick exactly which Business ➜ WABA ➜ phone number they want to connect.
+
+Step
+
+HTTP method / path
+
+What happens
+
+1
+
+GET /api/auth/whatsapp/login
+
+Redirects the browser to Meta’s OAuth dialog with the scopes whatsapp_business_management, whatsapp_business_messaging, business_management.
+
+2
+
+GET /api/auth/whatsapp/callback
+
+Exchanges the code for a user access‑token and returns a JSON payload: { accessToken, businesses:[{id,name},…] }. UI asks the user to choose a Business Manager.
+
+3
+
+POST /api/auth/whatsapp/select‑business
+
+Body: { accessToken, businessId } ⇒ returns { accessToken, wabas:[{id,name},…] }. User picks a WhatsApp Business Account (WABA) inside that business.
+
+4
+
+POST /api/auth/whatsapp/select‑waba
+
+Body: { accessToken, wabaId } ⇒ returns { accessToken, wabaId, phoneNumbers:[{id,display},…] }. User selects the phone number they want Leadsbox to manage.
+
+5
+
+POST /api/auth/whatsapp/connect
+
+Body: { accessToken, wabaId, phoneId, userId } ⇒ Saves the connection in MongoDB and calls /{wabaId}/subscribed_apps to enable webhooks. Responds "WhatsApp account linked".
+
+After step 5 inbound messages for that phone number will hit /api/whatsapp/webhook, be tagged by Leadsbox, and appear in the unified inbox.
+
 ### **Connecting a WhatsApp Business Account in Dev (step‑by‑step)**
 *(This is what you’ll do the very first time using ngrok.)*
 
