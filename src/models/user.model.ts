@@ -11,7 +11,12 @@ const userSchema = new mongoose.Schema<UserDocument>(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: false },
     token: { type: String, required: false },
-    provider: { type: String, required: false, enum: Object.values(UserProvider), unique: true },
+    provider: {
+      type: String,
+      required: false,
+      enum: Object.values(UserProvider),
+      unique: true,
+    },
     providerId: { type: String, required: false },
     profileImage: { type: String, required: false },
   },
@@ -20,13 +25,13 @@ const userSchema = new mongoose.Schema<UserDocument>(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     id: false,
-  },
+  }
 );
 
 userSchema.set('toJSON', {
   transform: function (
     doc: mongoose.Document,
-    ret: Partial<UserDocument & DefaultDate>,
+    ret: Partial<UserDocument & DefaultDate>
   ) {
     if (ret.createdAt) {
       ret.createdAt = ret.createdAt.toISOString() as any;
@@ -41,7 +46,7 @@ userSchema.set('toJSON', {
 userSchema.set('toObject', {
   transform: function (
     doc: mongoose.Document,
-    ret: Partial<UserDocument & DefaultDate>,
+    ret: Partial<UserDocument & DefaultDate>
   ) {
     if (ret.createdAt) {
       ret.createdAt = ret.createdAt.toISOString() as any;

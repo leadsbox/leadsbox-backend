@@ -64,6 +64,6 @@ providerSchema.set('toObject', {
   },
 });
 
-const ProviderModel = mongoose.model<ProviderDocument>('User', providerSchema);
+const ProviderModel = mongoose.model<ProviderDocument>('Provider', providerSchema);
 
 export { ProviderModel, providerSchema };
