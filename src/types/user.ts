@@ -8,8 +8,9 @@ export type UserType = {
   email: string;
   password: string | null;
   token?: string;
-  provider?: UserProvider
+  provider?: UserProvider;
   providerId?: string;
+  profileImage?: string;
 };
 
 export type DefaultDate = { createdAt: Date; updatedAt: Date };
@@ -20,4 +21,3 @@ export interface TokenPayload {
   username?: string;
   exp?: number;
 }
-

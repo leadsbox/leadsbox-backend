@@ -132,6 +132,7 @@ passport.use(
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) return done(new Error('No email returned'), false);
+        const profileImage = profile.photos?.[0]?.value;
         console.log('Google profile:', profile);
 
         let existingUser = await mongoUserService.findOneMongo(
@@ -167,6 +168,7 @@ passport.use(
             provider: UserProvider.GOOGLE,
             token,
             providerId: profile.id,
+            profileImage,
           };
 
           const creation = await mongoUserService.updateOne(

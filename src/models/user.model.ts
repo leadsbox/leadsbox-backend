@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
     token: { type: String, required: false },
     provider: { type: String, required: false, enum: Object.values(UserProvider), unique: true },
     providerId: { type: String, required: false },
+    profileImage: { type: String, required: false },
   },
   {
     timestamps: true,
