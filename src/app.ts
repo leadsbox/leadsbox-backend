@@ -10,7 +10,6 @@ import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
 import telegramRoutes from './routes/telegram.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
-import { monitorMaterialCenter } from './utils/healthCheck';
 import cookieParser from 'cookie-parser';
 
 const app = express();
@@ -29,10 +28,6 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
-
-// setInterval(monitorMaterialCenter, 60 * 1000);
-
-// monitorMaterialCenter();
 
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
