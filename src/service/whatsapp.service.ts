@@ -9,7 +9,7 @@ export class WhatsappService {
     const { data } = await axios.get(`${GRAPH}/me/businesses`, {
       params: { access_token: accessToken, fields: 'id,name' },
     });
-    return data;           // { data: [ { id, name }, … ] }
+    return data;
   }
 
   // ②  Inside that Business, list owned WABAs
@@ -18,15 +18,14 @@ export class WhatsappService {
       `${GRAPH}/${businessId}/owned_whatsapp_business_accounts`,
       { params: { access_token: accessToken, fields: 'id,name' } }
     );
-    return data;           // { data: [ { id, name }, … ] }
+    return data;
   }
 
   static async getPhoneNumbers(wabaId: string, accessToken: string) {
-    const { data } = await axios.get(
-      `${GRAPH}/${wabaId}/phone_numbers`,
-      { params: { access_token: accessToken } }
-    );
-    return data;           // { data: [ { id, display_phone_number }, … ] }
+    const { data } = await axios.get(`${GRAPH}/${wabaId}/phone_numbers`, {
+      params: { access_token: accessToken },
+    });
+    return data;
   }
 
   static async registerWebhook(wabaId: string, accessToken: string) {

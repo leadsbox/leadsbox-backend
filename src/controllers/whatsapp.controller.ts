@@ -133,12 +133,13 @@ class WhatsappController {
       ].join(',')
     );
     url.searchParams.set('state', state);
-    console.log('Redirecting to WhatsApp login:', url.toString());
+    console.log('Whatsapp login called - Redirecting to WhatsApp callback:', url.toString());
 
     res.redirect(url.toString());
   }
 
-  public async handleCallback(req: Request, res: Response): Promise<void> {
+  public async handleCallback(req: Request, res: Response) {
+  console.log('Handling WhatsApp OAuth callback:');
     const { code, state } = req.query as Record<string, string | undefined>;
     if (!code || !state || state !== req.cookies.wa_oauth_state) {
       return ResponseUtils.error(
@@ -149,7 +150,6 @@ class WhatsappController {
     }
 
     try {
-      /* Token exchange (unchanged) */
       const { data: tokenData } = await axios.get(
         'https://graph.facebook.com/v19.0/oauth/access_token',
         {
@@ -163,49 +163,115 @@ class WhatsappController {
       );
       const accessToken = tokenData.access_token;
 
-      /* ①  Businesses the user can access */
-      const bizList = await WhatsappService.getBusinesses(accessToken);
-      const businessId = bizList.data?.[0]?.id;
-      if (!businessId) {
+      const bizResp = await WhatsappService.getBusinesses(accessToken); // {data:[…]}
+      if (!bizResp.data?.length) {
         return ResponseUtils.error(
           res,
-          'User is not an admin of any Business Manager',
+          'No Business Manager found',
           StatusCode.BAD_REQUEST
         );
       }
 
-      /* ②  WhatsApp Business Accounts inside that Business */
-      const wabaList = await WhatsappService.getBusinessAccounts(
+      return ResponseUtils.success(res, {
+        accessToken,
+        businesses: bizResp.data.map((b: any) => ({ id: b.id, name: b.name })),
+      });
+    } catch (err: any) {
+      console.error('handleCallback error:', err.response?.data || err.message);
+      return ResponseUtils.error(
+        res,
+        err.response?.data?.error?.message || 'OAuth callback failed',
+        StatusCode.BAD_REQUEST
+      );
+    }
+  }
+
+  public async selectBusiness(req: Request, res: Response) {
+    const { accessToken, businessId } = req.body as {
+      accessToken: string;
+      businessId: string;
+    };
+
+    try {
+      const wabaResp = await WhatsappService.getBusinessAccounts(
         businessId,
         accessToken
       );
-      const wabaId = wabaList.data?.[0]?.id;
-      if (!wabaId) {
+      if (!wabaResp.data?.length) {
         return ResponseUtils.error(
           res,
-          'No WhatsApp Business Account found in that Business',
+          'No WABA in that business',
           StatusCode.BAD_REQUEST
         );
       }
 
-      /* ③  Phone numbers inside that WABA */
-      const phoneList = await WhatsappService.getPhoneNumbers(
+      return ResponseUtils.success(res, {
+        accessToken, // pass through
+        wabas: wabaResp.data.map((w: { id: any; name: any }) => ({
+          id: w.id,
+          name: w.name,
+        })),
+      });
+    } catch (err: any) {
+      console.error('selectBusiness error:', err.response?.data || err.message);
+      return ResponseUtils.error(
+        res,
+        err.response?.data?.error?.message || 'Fetching WABAs failed',
+        StatusCode.BAD_REQUEST
+      );
+    }
+  }
+
+  public async selectWaba(req: Request, res: Response) {
+    const { accessToken, wabaId } = req.body as {
+      accessToken: string;
+      wabaId: string;
+    };
+
+    try {
+      const phoneResp = await WhatsappService.getPhoneNumbers(
         wabaId,
         accessToken
       );
-      const phoneId = phoneList.data?.[0]?.id;
-      if (!phoneId) {
+      if (!phoneResp.data?.length) {
         return ResponseUtils.error(
           res,
-          'No phone number found in the WABA',
+          'No phone number in that WABA',
           StatusCode.BAD_REQUEST
         );
       }
 
-      /* ④  Persist + webhook */
-      const user = req.user as UserType | undefined;
+      return ResponseUtils.success(res, {
+        accessToken,
+        wabaId,
+        phoneNumbers: phoneResp.data.map(
+          (p: { id: any; display_phone_number: any; verified_name: any }) => ({
+            id: p.id,
+            display: p.display_phone_number || p.verified_name || 'Unknown',
+          })
+        ),
+      });
+    } catch (err: any) {
+      console.error('selectWaba error:', err.response?.data || err.message);
+      return ResponseUtils.error(
+        res,
+        err.response?.data?.error?.message || 'Fetching phone numbers failed',
+        StatusCode.BAD_REQUEST
+      );
+    }
+  }
+
+  public async connect(req: Request, res: Response) {
+    const { accessToken, wabaId, phoneId, userId } = req.body as {
+      accessToken: string;
+      wabaId: string;
+      phoneId: string;
+      userId: string;
+    };
+
+    try {
       await WhatsappService.saveConnection({
-        userId: user?._id,
+        userId,
         wabaId,
         phoneNumberId: phoneId,
         accessToken,
@@ -219,10 +285,10 @@ class WhatsappController {
         StatusCode.OK
       );
     } catch (err: any) {
-      console.error('Graph error:', err.response?.data || err.message);
+      console.error('finalize error:', err.response?.data || err.message);
       return ResponseUtils.error(
         res,
-        err.response?.data?.error?.message || 'Graph API request failed',
+        err.response?.data?.error?.message || 'Finalising WhatsApp link failed',
         StatusCode.BAD_REQUEST
       );
     }
