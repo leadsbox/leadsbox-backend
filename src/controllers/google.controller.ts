@@ -40,7 +40,7 @@ class GoogleAuthController {
 
   public async googleCallback(req: Request, res: Response): Promise<void> {
     console.log('Received Google callback');
-    const user = req.user as any; 
+    const user = req.user as any;
     console.log('User:', user);
 
     if (!user || !user.token) {

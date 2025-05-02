@@ -191,25 +191,25 @@ After step 5 inbound messages for that phone number will hit /api/whatsapp/webh
 1. **Expose the backend locally**
    ```bash
    ngrok http 3010   # 3010 is your Express port
-   # e.g. https://3d8a-102-36-149-177.ngrok-free.app
+   # e.g. https://https://13f1-102-90-102-138.ngrok-free.app
    ```
 2. **Meta App › Settings → Basic**
-   - **App Domains:** `3d8a-102-36-149-177.ngrok-free.app`
-   - **Add Platform → Website → Site URL:** `https://3d8a-102-36-149-177.ngrok-free.app`
+   - **App Domains:** `https://13f1-102-90-102-138.ngrok-free.app`
+   - **Add Platform → Website → Site URL:** `https://https://13f1-102-90-102-138.ngrok-free.app`
 3. **Facebook Login → Settings**
    - **Client OAuth Login:** ON  │  **Web OAuth Login:** ON
    - **Valid OAuth Redirect URIs:**
      ```
-     https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback
+     https://https://13f1-102-90-102-138.ngrok-free.app/api/auth/whatsapp/callback
      ```
 4. **WhatsApp → Getting Started / Configuration**
    - If you don’t have a WABA yet, click **Create WhatsApp Business Account** — Meta will generate a *test* WABA and phone number automatically.
-   - Under **Webhook** paste: `https://3d8a-102-36-149-177.ngrok-free.app/api/whatsapp/webhook` and **Verify**.
+   - Under **Webhook** paste: `https://https://13f1-102-90-102-138.ngrok-free.app/api/whatsapp/webhook` and **Verify**.
 5. **Assign Roles**
    - In **Business Settings → WhatsApp Accounts** add your Facebook profile as **Admin** to the WABA so the API can list it.
 6. **Environment variables** (`.env`)
    ```env
-   WHATSAPP_REDIRECT_URI=https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback
+   WHATSAPP_REDIRECT_URI=https://https://13f1-102-90-102-138.ngrok-free.app/api/auth/whatsapp/callback
    FACEBOOK_APP_ID=<your‑app‑id>
    FACEBOOK_APP_SECRET=<your‑app‑secret>
    ```

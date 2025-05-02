@@ -116,7 +116,7 @@ class WhatsappController {
   public startLogin(req: Request, res: Response): void {
     const state = crypto.randomBytes(16).toString('hex');
     const redirectUri =
-      'https://3d8a-102-36-149-177.ngrok-free.app/api/auth/whatsapp/callback';
+      'https://https://13f1-102-90-102-138.ngrok-free.app/api/auth/whatsapp/callback';
 
     res.cookie('wa_oauth_state', state, { httpOnly: true, secure: true });
 
@@ -133,13 +133,16 @@ class WhatsappController {
       ].join(',')
     );
     url.searchParams.set('state', state);
-    console.log('Whatsapp login called - Redirecting to WhatsApp callback:', url.toString());
+    console.log(
+      'Whatsapp login called - Redirecting to WhatsApp callback:',
+      url.toString()
+    );
 
     res.redirect(url.toString());
   }
 
   public async handleCallback(req: Request, res: Response) {
-  console.log('Handling WhatsApp OAuth callback:');
+    console.log('Handling WhatsApp OAuth callback:');
     const { code, state } = req.query as Record<string, string | undefined>;
     if (!code || !state || state !== req.cookies.wa_oauth_state) {
       return ResponseUtils.error(

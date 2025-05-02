@@ -10,7 +10,10 @@ import instagramRoutes from './routes/instagram.routes';
 import authRoutes from './routes/auth.routes';
 import telegramRoutes from './routes/telegram.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
+import providerRoutes from './routes/provider.routes';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+
 
 const app = express();
 app.use(
@@ -21,8 +24,25 @@ app.use(
     },
   })
 );
+
+app.use(
+  session({
+    name: 'leadsbox.sid',
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'dev',
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    },
+  })
+);
+
 app.use(cors());
 app.use(passport.initialize());
+app.use(passport.session());
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
@@ -32,6 +52,7 @@ app.get('/', (req, res) => {
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/provider', providerRoutes)
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 

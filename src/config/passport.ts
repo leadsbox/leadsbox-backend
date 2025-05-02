@@ -128,7 +128,11 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       callbackURL: process.env.GOOGLE_REDIRECT_URI as string,
     },
+
     async (accessToken, _refreshToken, profile, done) => {
+      const redirectUri = process.env.GOOGLE_REDIRECT_URI as string;
+      console.log('Redirect URI being used:', redirectUri);
+
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) return done(new Error('No email returned'), false);
