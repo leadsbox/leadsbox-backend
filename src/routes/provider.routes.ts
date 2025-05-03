@@ -2,7 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { FacebookAuthCtrl } from '../controllers/facebook.controller';
 import { TelegramCtrl, WhatsappCtrl } from '../controllers';
-import SSOAuth from '../middleware/SSOAuth.middleware';
+import authMiddleware from '../middleware/auth.middleware';
 
 const router = Router();
 router.get(
@@ -15,7 +15,7 @@ router.get(
 
 router.get(
   '/facebook',
-  SSOAuth,
+  authMiddleware,
   passport.authenticate('facebook', {
     scope: [
       'email',

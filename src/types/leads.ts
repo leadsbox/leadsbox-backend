@@ -14,8 +14,6 @@ export interface LeadType {
   providerId: string;
 }
 
-export type DefaultDate = { createdAt: Date; updatedAt: Date };
-
 export enum LeadLabel {
   CLOSED_LOST_TRANSACTION = 'Closed/ Lost Transaction',
   TRANSACTION_SUCCESSFUL = 'Transaction Successful',

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { AuthCtrl } from '../controllers/auth.controller';
 import { GoogleAuthCtrl } from '../controllers/google.controller';
+import { tokenController } from '../controllers';
 
 const router = Router();
 
@@ -18,5 +19,7 @@ router.get(
     GoogleAuthCtrl.googleCallback(req, res);
   }
 );
+
+router.get('/check-token', tokenController.checkToken);
 
 export default router;

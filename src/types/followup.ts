@@ -4,5 +4,3 @@ export interface IFollowUp {
   status: string;
   notes?: string;
 }
-
-export type DefaultDate = { createdAt: Date; updatedAt: Date };

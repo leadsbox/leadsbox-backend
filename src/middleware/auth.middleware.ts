@@ -1,5 +1,5 @@
 // src/middleware/auth.middleware.ts
-import { RequestHandler } from 'express';
+import { RequestHandler, NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { mongoUserService } from '../service/mongo';
 
@@ -7,34 +7,51 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-const authMiddleware: RequestHandler = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    res
-      .status(401)
-      .json({ message: 'Missing or invalid Authorization header' });
-    return;
+const authMiddleware: RequestHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  // 1️⃣ Grab token from cookie or header
+  const token =
+    req.cookies?.leadsbox_token ||
+    req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  console.log('Auth cookies:', req.cookies);
+
+  if (!token) {
+    res.status(401).json({ message: 'Missing authentication token' });
+    return; // <-- void
   }
 
-  const token = authHeader.split(' ')[1];
   try {
+    // 2️⃣ Verify JWT
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
     };
-    const userId = payload.userId;
 
-    const user = await mongoUserService.findOne({userId}, { session: null });
-    
-    if (!user.status || !user.data) {
+    // 3️⃣ Lookup user
+    const result = await mongoUserService.findOne(
+      { userId: payload.userId },
+      { session: null }
+    );
+
+    if (!result.status || !result.data) {
       res.status(401).json({ message: 'User not found' });
-      return;
+      return; // <-- void
     }
 
-    (req as unknown as AuthRequest).user = user.data;
-    next();
+    // 4️⃣ Attach user to req
+    (req as AuthRequest).user = {
+      ...result.data,
+      userId: payload.userId,
+    };
+
+    next(); // continue
   } catch (err) {
-    res.status(401).json({ message: 'Invalid or expired token' });
-    return;
+    res
+      .status(401)
+      .json({ message: 'Invalid or expired authentication token' });
+    return; // <-- void
   }
 };
 

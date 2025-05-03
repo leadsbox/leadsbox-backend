@@ -15,6 +15,7 @@ const providerSchema = new mongoose.Schema<ProviderDocument>(
     },
     providerId: { type: String, required: false },
     username: { type: String, required: false, unique: true },
+    profileImage: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     token: { type: String, required: false },
     tokenExpires: { type: Date, required: false },

@@ -16,6 +16,7 @@ export type ProviderType = {
   botToken?: string;
   chatId?: string;
   webhookSubscribed?: boolean;
+  profileImage?: string;
 };
 
 export enum UserProvider {

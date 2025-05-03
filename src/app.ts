@@ -14,8 +14,15 @@ import providerRoutes from './routes/provider.routes';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 
-
 const app = express();
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:3010', // Allow the frontend domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials: true, // Enable cookies
+};
+
+app.use(cors(corsOptions));
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -40,7 +47,6 @@ app.use(
   })
 );
 
-app.use(cors());
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(cookieParser());
@@ -52,7 +58,7 @@ app.get('/', (req, res) => {
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/provider', providerRoutes)
+app.use('/api/provider', providerRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
