@@ -1,5 +1,6 @@
 import { ClientSession, Model, mongoose } from '../config/db';
 import { LeadDocument, LeadModel } from '../models/leads.model';
+import { LinkStateDocument, LinkStateModel } from '../models/linkstate.model';
 import { ProviderDocument, ProviderModel } from '../models/provider';
 import { UserDocument, UserModel } from '../models/user.model';
 import { DbOptions, DbResponse } from '../types/mongo';
@@ -247,3 +248,4 @@ export const mongoLeadService = new MongoDBService<LeadDocument>(LeadModel);
 export const mongoProviderService = new MongoDBService<ProviderDocument>(
   ProviderModel
 );
+export const mongoLinkStateService = new MongoDBService<LinkStateDocument>(LinkStateModel);

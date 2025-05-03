@@ -39,22 +39,39 @@ class GoogleAuthController {
   }
 
   public async googleCallback(req: Request, res: Response): Promise<void> {
-    console.log('Received Google callback');
+    console.log('Received Google callback ✅');
     const user = req.user as any;
-    console.log('User:', user);
 
-    if (!user || !user.token) {
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:3010';
-      return res.redirect(`${clientUrl}/login?error=google_auth_failed`);
+    // If no token, redirect to login
+    if (!user?.token) {
+      return res.redirect(
+        'http://localhost:3000/login?error=google_auth_failed'
+      );
     }
 
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3010';
-    const redirectUrl = `${clientUrl}/google?token=${encodeURIComponent(
-      user.token
-    )}`;
-    console.log('Redirecting to:', redirectUrl);
+    // Build the cookie string — first-party context on the API domain
+    const isProd = process.env.NODE_ENV === 'dev';
+    const parts = [
+      `leadsbox_token=${user.token}`,
+      `Path=/`,
+      `Max-Age=${24 * 60 * 60}`, // 1 day
+      isProd ? `Secure` : ``,
+      isProd ? `SameSite=None` : `SameSite=Lax`,
+    ].filter(Boolean);
 
-    return res.redirect(redirectUrl);
+    // Serve an HTML page that sets the cookie in JS, then redirects to React
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`
+      <!DOCTYPE html>
+      <html><body>
+        <script>
+          // Set the cookie from the API domain (this runs in the browser on the API origin)
+          document.cookie = "${parts.join('; ')}";
+          // Then navigate to your React app
+          window.location.href = "http://localhost:3000";
+        </script>
+      </body></html>
+    `);
   }
 }
 

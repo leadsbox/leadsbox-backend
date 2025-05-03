@@ -1,6 +1,6 @@
 import { mongoose, Schema } from '../config/db';
-import { UserProvider } from '../types';
-import { LeadType, DefaultDate } from '../types/leads';
+import { DefaultDate, UserProvider } from '../types';
+import { LeadType } from '../types/leads';
 import { TransactionSchema } from './transaction.model';
 
 export type LeadDocument = LeadType & mongoose.Document;

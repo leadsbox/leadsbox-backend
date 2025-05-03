@@ -1,5 +1,6 @@
 import { mongoose, Schema } from '../config/db';
-import { IFollowUp, DefaultDate } from '../types/followup';
+import { DefaultDate } from '../types';
+import { IFollowUp } from '../types/followup';
 
 export type FollowUpDocument = IFollowUp & mongoose.Document;
 
