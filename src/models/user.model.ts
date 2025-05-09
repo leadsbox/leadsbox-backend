@@ -15,7 +15,6 @@ const userSchema = new mongoose.Schema<UserDocument>(
       type: String,
       required: false,
       enum: Object.values(UserProvider),
-      unique: true,
     },
     providerId: { type: String, required: false },
     profileImage: { type: String, required: false },
@@ -57,6 +56,8 @@ userSchema.set('toObject', {
     return ret;
   },
 });
+
+userSchema.index({ provider: 1, providerId: 1 }, { unique: true });
 
 const UserModel = mongoose.model<UserDocument>('User', userSchema);
 

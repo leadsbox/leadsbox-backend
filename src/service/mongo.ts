@@ -1,3 +1,4 @@
+import { UpdateQuery } from 'mongoose';
 import { ClientSession, Model, mongoose } from '../config/db';
 import { LeadDocument, LeadModel } from '../models/leads.model';
 import { LinkStateDocument, LinkStateModel } from '../models/linkstate.model';
@@ -175,7 +176,7 @@ class MongoDBService<T extends mongoose.Document> {
 
   async updateOne(
     query: any,
-    updateData: Partial<T>,
+    updateData: UpdateQuery<T>,
     options?: DbOptions
   ): Promise<DbResponse<T>> {
     const session = options?.session || this.session || null;
@@ -248,4 +249,6 @@ export const mongoLeadService = new MongoDBService<LeadDocument>(LeadModel);
 export const mongoProviderService = new MongoDBService<ProviderDocument>(
   ProviderModel
 );
-export const mongoLinkStateService = new MongoDBService<LinkStateDocument>(LinkStateModel);
+export const mongoLinkStateService = new MongoDBService<LinkStateDocument>(
+  LinkStateModel
+);

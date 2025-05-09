@@ -2,7 +2,11 @@ import passport from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { UserModel } from '../models/user.model';
 import { UserProvider } from '../types';
-import { mongoLinkStateService, mongoProviderService, mongoUserService } from '../service/mongo';
+import {
+  mongoLinkStateService,
+  mongoProviderService,
+  mongoUserService,
+} from '../service/mongo';
 import { Toolbox } from '../utils/tools';
 import { CryptoUtils } from '../utils/crypto';
 import { mongoose } from './db';
@@ -27,7 +31,7 @@ passport.use(
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       callbackURL: process.env.FACEBOOK_CALLBACK_URL!,
       profileFields: ['id', 'emails', 'name'],
-      passReqToCallback: true
+      passReqToCallback: true,
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
@@ -54,9 +58,10 @@ passport.use(
             provider: UserProvider.FACEBOOK,
             providerId: profile.id,
             email: profile.emails?.[0]?.value,
-            username: `${profile.name?.givenName} ${profile.name?.familyName}`.trim(),
+            username:
+              `${profile.name?.givenName} ${profile.name?.familyName}`.trim(),
             token: accessToken,
-            profileImage: profile.photos?.[0]?.value
+            profileImage: profile.photos?.[0]?.value,
           }
         );
         if (!update.status) {
@@ -81,17 +86,20 @@ passport.use(
 
     async (accessToken, _refreshToken, profile, done) => {
       const redirectUri = process.env.GOOGLE_REDIRECT_URI as string;
-      console.log('Redirect URI being used:', redirectUri);
+      console.log('Profile:', profile);
 
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) return done(new Error('No email returned'), false);
+        console.log('Email:', email);
         const profileImage = profile.photos?.[0]?.value;
-        console.log('Google profile:', profile);
 
         let existingUser = await mongoUserService.findOneMongo(
           {
-            $or: [{ provider: UserProvider.GOOGLE }, { email }],
+            $or: [
+              { provider: UserProvider.GOOGLE, providerId: profile.id },
+              { email },
+            ],
           },
           { session: null }
         );

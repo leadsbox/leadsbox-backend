@@ -9,12 +9,14 @@ import axios from 'axios';
 class GoogleAuthController {
   public async googleLogin(req: Request, res: Response): Promise<void> {
     try {
+      res.clearCookie('ga_oauth_state');
       const state = CryptoUtils.createRandomBytes(16);
       res.cookie('ga_oauth_state', state, {
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 10 * 60_000,
       });
+      console.log('[GoogleLogin] New state generated:', state);
 
       const params = new URLSearchParams({
         client_id: process.env.GOOGLE_CLIENT_ID as string,
@@ -39,7 +41,6 @@ class GoogleAuthController {
   }
 
   public async googleCallback(req: Request, res: Response): Promise<void> {
-    console.log('Received Google callback ✅');
     const user = req.user as any;
 
     // If no token, redirect to login
@@ -59,7 +60,16 @@ class GoogleAuthController {
       isProd ? `SameSite=None` : `SameSite=Lax`,
     ].filter(Boolean);
 
-    // Serve an HTML page that sets the cookie in JS, then redirects to React
+    // res.cookie('leadsbox_token', user.token, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: 'none',
+    //   path: '/',
+    //   maxAge: 24 * 60 * 60 * 1000,
+    // });
+
+    // const setCookieHeader = res.getHeader('Set-Cookie');
+
     res.setHeader('Content-Type', 'text/html');
     res.send(`
       <!DOCTYPE html>
