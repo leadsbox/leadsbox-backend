@@ -86,7 +86,6 @@ passport.use(
 
     async (accessToken, _refreshToken, profile, done) => {
       const redirectUri = process.env.GOOGLE_REDIRECT_URI as string;
-      console.log('Profile:', profile);
 
       try {
         const email = profile.emails?.[0]?.value;

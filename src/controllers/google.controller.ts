@@ -51,37 +51,25 @@ class GoogleAuthController {
     }
 
     // Build the cookie string — first-party context on the API domain
-    const isProd = process.env.NODE_ENV === 'dev';
-    const parts = [
-      `leadsbox_token=${user.token}`,
-      `Path=/`,
-      `Max-Age=${24 * 60 * 60}`, // 1 day
-      isProd ? `Secure` : ``,
-      isProd ? `SameSite=None` : `SameSite=Lax`,
-    ].filter(Boolean);
+    // const isProd = process.env.NODE_ENV === 'dev';
+    // const parts = [
+    //   `leadsbox_token=${user.token}`,
+    //   `Path=/`,
+    //   `Max-Age=${24 * 60 * 60}`, // 1 day
+    //   isProd ? `Secure` : ``,
+    //   isProd ? `SameSite=None` : `SameSite=Lax`,
+    // ].filter(Boolean);
 
-    // res.cookie('leadsbox_token', user.token, {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: 'none',
-    //   path: '/',
-    //   maxAge: 24 * 60 * 60 * 1000,
-    // });
+    res.cookie('leadsbox_token', user.token, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
-    // const setCookieHeader = res.getHeader('Set-Cookie');
-
-    res.setHeader('Content-Type', 'text/html');
-    res.send(`
-      <!DOCTYPE html>
-      <html><body>
-        <script>
-          // Set the cookie from the API domain (this runs in the browser on the API origin)
-          document.cookie = "${parts.join('; ')}";
-          // Then navigate to your React app
-          window.location.href = "http://localhost:3000";
-        </script>
-      </body></html>
-    `);
+    console.log('Set-Cookie header:', res.getHeader('Set-Cookie'));
+    res.redirect('http://localhost:3000');
   }
 }
 

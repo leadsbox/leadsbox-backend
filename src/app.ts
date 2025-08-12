@@ -13,10 +13,12 @@ import whatsappRoutes from './routes/whatsapp.routes';
 import providerRoutes from './routes/provider.routes';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import invoiceRoutes from './routes/invoices.routes';
+import settingsRoutes from './routes/settings.routes';
 
 const app = express();
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3010', // Allow the frontend domain
+  origin: 'http://localhost:3000', // Allow the frontend domain
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Enable cookies
@@ -61,6 +63,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/provider', providerRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/settings', settingsRoutes);
+
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
