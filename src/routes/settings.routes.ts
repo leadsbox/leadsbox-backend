@@ -5,5 +5,6 @@ const router = Router();
 
 router.get('/bank', SettingsCtrl.getBankDetails.bind(SettingsCtrl));
 router.post('/bank', SettingsCtrl.updateBankDetails.bind(SettingsCtrl));
+router.post('/org', SettingsCtrl.updateOrgDetails.bind(SettingsCtrl));
 
 export default router;

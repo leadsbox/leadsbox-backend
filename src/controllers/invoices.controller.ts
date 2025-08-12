@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import Invoice from '../models/invoice.model';
+import Org from '../models/org.model';
 import PaymentClaim from '../models/paymentClaim.model';
 import OrgBankDetails from '../models/orgBankDetails.model';
 import { generateInvoiceCode } from '../utils/invoiceCode';
@@ -55,16 +56,17 @@ export class InvoiceController {
         const bankLine = bank
           ? `${bank.bankName} • ${bank.accountName} • ${bank.accountNumber}`
           : 'your bank details';
-        const msg = sendText
-          .replaceAll('{{code}}', code)
-          .replaceAll('{{amount}}', `${total}`)
-          .replaceAll('{{bank_line}}', bankLine)
-          .replaceAll(
-            '{{link}}',
-            `${process.env.PUBLIC_APP_URL || ''}/invoice/${code}`
-          );
+        const org = await Org.findById(orgId).lean();
+        const businessName = org?.name || 'Your Business';
+        const msg = `
+Invoice ${code} ${businessName} — ₦${total}
+Pay to ${bankLine}
+Narration: ${code}
+Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${code}
+
+Powered by LeadsBox`;
         const sentToWhatsApp = await sendWhatsAppText(contactPhone, msg);
-        console.log('sentToWhatsApp', sentToWhatsApp)
+        console.log('sentToWhatsApp', sentToWhatsApp);
       }
 
       res.json({ ok: true, invoice });
