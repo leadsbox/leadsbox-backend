@@ -98,6 +98,81 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 - **Lead Management:** `/api/leads/*`
 - **Follow-Up Scheduling:** `/api/followup/*`
 
+## Common API Operations
+
+Here are some examples of common operations you can perform using `curl`.
+
+### 1. Set Your Business Name
+
+To set or update your business name, which will be used in communications like WhatsApp messages, use the `/api/settings/org` endpoint.
+
+```bash
+curl -X POST "http://localhost:4000/api/settings/org" \
+-H "X-Org-Id: YOUR_ORG_ID" \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "Your Business Name"
+}'
+```
+
+### 2. Set Your Bank Details
+
+To set or update the bank details used in invoices, use the `/api/settings/bank` endpoint.
+
+```bash
+curl -X POST "http://localhost:4000/api/settings/bank" \
+-H "X-Org-Id: YOUR_ORG_ID" \
+-H "Content-Type: application/json" \
+-d '{
+  "bankName": "Your Bank Name",
+  "accountName": "Your Account Name",
+  "accountNumber": "Your Account Number"
+}'
+```
+
+### 3. Create an Invoice and Send a WhatsApp Notification
+
+To create a new invoice and automatically send a notification to the customer via WhatsApp, use the `/api/invoices` endpoint.
+
+```bash
+curl --location 'http://localhost:4000/api/invoices' \
+--header 'x-org-id: YOUR_ORG_ID' \
+--header 'Content-Type: application/json' \
+--data '{
+    "contactId": "CUSTOMER_CONTACT_ID",
+    "contactPhone": "+1234567890",
+    "items": [
+        {
+            "name": "Product A",
+            "qty": 2,
+            "unitPrice": 5000
+        }
+    ],
+    "autoSendTo": true,
+    "sendText": true
+}'
+```
+
+### 4. Confirm Invoice Payment (Customer)
+
+This endpoint is used by the customer to confirm they have made the payment. Replace `:invoice_code` with the actual invoice code.
+
+```bash
+curl --location --request POST 'http://localhost:4000/api/invoices/:invoice_code/confirm-payment' \
+--header 'x-org-id: YOUR_ORG_ID'
+```
+
+### 5. Verify Invoice Payment (Admin)
+
+This endpoint is used by the business/admin to verify the payment and trigger a receipt. Replace `:invoice_code` with the actual invoice code.
+
+```bash
+curl --location --request POST 'http://localhost:4000/api/invoices/:invoice_code/verify-payment' \
+--header 'x-org-id: YOUR_ORG_ID'
+```
+
+> **Note:** Replace `YOUR_ORG_ID`, `CUSTOMER_CONTACT_ID`, and other placeholder values with your actual data. The `contactPhone` must be in international format with a `+` prefix.
+
 ## Integration Flows
 
 ### Telegram Integration Flow

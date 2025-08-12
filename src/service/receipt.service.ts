@@ -18,6 +18,7 @@ export async function sendWhatsAppText(to: string, text: string) {
         'Content-Type': 'application/json'
       }
     });
+    console.log('response: ', response.data);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {

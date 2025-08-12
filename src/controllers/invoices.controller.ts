@@ -42,6 +42,7 @@ export class InvoiceController {
       const invoice = await Invoice.create({
         orgId,
         contactId,
+        contactPhone,
         code,
         currency,
         items,
@@ -67,6 +68,75 @@ Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${code}
 Powered by LeadsBox`;
         const sentToWhatsApp = await sendWhatsAppText(contactPhone, msg);
         console.log('sentToWhatsApp', sentToWhatsApp);
+      }
+
+      res.json({ ok: true, invoice });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  public async confirmPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { code } = req.params;
+      const orgId = req.header('x-org-id');
+
+      const invoice = await Invoice.findOneAndUpdate(
+        { code, orgId, status: { $in: ['sent', 'viewed'] } },
+        { status: 'pending_confirmation' },
+        { new: true }
+      );
+
+      if (!invoice) {
+        res
+          .status(404)
+          .json({ error: 'Invoice not found or already processed' });
+        return;
+      }
+
+      // TODO: Notify admin that a payment has been confirmed
+
+      res.json({
+        ok: true,
+        message: 'Payment confirmation received. Awaiting verification.',
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  public async verifyPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { code } = req.params;
+      const orgId = req.header('x-org-id');
+
+      const invoice = await Invoice.findOneAndUpdate(
+        { code, orgId, status: 'pending_confirmation' },
+        { status: 'paid' },
+        { new: true }
+      );
+
+      if (!invoice) {
+        res
+          .status(404)
+          .json({ error: 'Invoice not found or not pending confirmation' });
+        return;
+      }
+
+      const org = await Org.findById(orgId).lean();
+      const businessName = org?.name || 'Your Business';
+
+      if (invoice.contactPhone) {
+        const receiptMsg = `
+Dear Customer,
+
+Your payment of ₦${invoice.total} for invoice ${invoice.code} has been confirmed.
+
+Thank you for your business!
+
+${businessName}
+Powered by LeadsBox`;
+        await sendWhatsAppText(invoice.contactPhone, receiptMsg);
       }
 
       res.json({ ok: true, invoice });
