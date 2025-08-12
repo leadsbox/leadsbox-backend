@@ -63,7 +63,8 @@ export class InvoiceController {
             '{{link}}',
             `${process.env.PUBLIC_APP_URL || ''}/invoice/${code}`
           );
-        await sendWhatsAppText(contactPhone, msg);
+        const sentToWhatsApp = await sendWhatsAppText(contactPhone, msg);
+        console.log('sentToWhatsApp', sentToWhatsApp)
       }
 
       res.json({ ok: true, invoice });

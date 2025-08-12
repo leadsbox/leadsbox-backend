@@ -57,6 +57,15 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
+// src/app.ts
+app.get('/api/debug/wa', (_req, res) => {
+  res.json({
+    phoneId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+    tokenTail: process.env.WHATSAPP_ACCESS_TOKEN,
+    publicUrl: process.env.PUBLIC_APP_URL,
+  });
+});
+
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);
@@ -66,7 +75,6 @@ app.use('/api/whatsapp', whatsappRoutes);
 
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
-
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
