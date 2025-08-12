@@ -107,7 +107,7 @@ Here are some examples of common operations you can perform using `curl`.
 To set or update your business name, which will be used in communications like WhatsApp messages, use the `/api/settings/org` endpoint.
 
 ```bash
-curl -X POST "http://localhost:4000/api/settings/org" \
+curl -X POST "http://YOUR_NEW_NGROK_URL/api/settings/org" \
 -H "X-Org-Id: YOUR_ORG_ID" \
 -H "Content-Type: application/json" \
 -d '{
@@ -120,7 +120,7 @@ curl -X POST "http://localhost:4000/api/settings/org" \
 To set or update the bank details used in invoices, use the `/api/settings/bank` endpoint.
 
 ```bash
-curl -X POST "http://localhost:4000/api/settings/bank" \
+curl -X POST "http://YOUR_NEW_NGROK_URL/api/settings/bank" \
 -H "X-Org-Id: YOUR_ORG_ID" \
 -H "Content-Type: application/json" \
 -d '{
@@ -135,7 +135,7 @@ curl -X POST "http://localhost:4000/api/settings/bank" \
 To create a new invoice and automatically send a notification to the customer via WhatsApp, use the `/api/invoices` endpoint.
 
 ```bash
-curl --location 'http://localhost:4000/api/invoices' \
+curl --location 'http://YOUR_NEW_NGROK_URL/api/invoices' \
 --header 'x-org-id: YOUR_ORG_ID' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -158,7 +158,7 @@ curl --location 'http://localhost:4000/api/invoices' \
 This endpoint is used by the customer to confirm they have made the payment. Replace `:invoice_code` with the actual invoice code.
 
 ```bash
-curl --location --request POST 'http://localhost:4000/api/invoices/:invoice_code/confirm-payment' \
+curl --location --request POST 'http://YOUR_NEW_NGROK_URL/api/invoices/:invoice_code/confirm-payment' \
 --header 'x-org-id: YOUR_ORG_ID'
 ```
 
@@ -167,7 +167,7 @@ curl --location --request POST 'http://localhost:4000/api/invoices/:invoice_code
 This endpoint is used by the business/admin to verify the payment and trigger a receipt. Replace `:invoice_code` with the actual invoice code.
 
 ```bash
-curl --location --request POST 'http://localhost:4000/api/invoices/:invoice_code/verify-payment' \
+curl --location --request POST 'http://YOUR_NEW_NGROK_URL/api/invoices/:invoice_code/verify-payment' \
 --header 'x-org-id: YOUR_ORG_ID'
 ```
 

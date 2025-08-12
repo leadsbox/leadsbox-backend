@@ -60,8 +60,9 @@ export class InvoiceController {
         const org = await Org.findById(orgId).lean();
         const businessName = org?.name || 'Your Business';
         const msg = `
-Invoice ${code} ${businessName} — ₦${total}
-Pay to ${bankLine}
+Invoice ${code} for ${businessName}
+Amount: ₦${total}
+Pay to: ${bankLine}
 Narration: ${code}
 Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${code}
 
@@ -128,13 +129,12 @@ Powered by LeadsBox`;
 
       if (invoice.contactPhone) {
         const receiptMsg = `
-Dear Customer,
+Dear ${businessName},
 
 Your payment of ₦${invoice.total} for invoice ${invoice.code} has been confirmed.
 
 Thank you for your business!
 
-${businessName}
 Powered by LeadsBox`;
         await sendWhatsAppText(invoice.contactPhone, receiptMsg);
       }
