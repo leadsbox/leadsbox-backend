@@ -10,8 +10,6 @@ import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types';
 import { generateReceiptCode } from '../utils/receiptCode';
 import Receipt from '../models/receipt.model';
-import { LeadModel } from '../models/leads.model';
-import { UserModel } from '../models/user.model';
 
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
@@ -22,7 +20,6 @@ export class InvoiceController {
       // const orgId = new Types.ObjectId(orgIdHeader);
       const {
         orgId,
-        contactId,
         items = [],
         currency = 'NGN',
         autoSendTo,
@@ -46,7 +43,6 @@ export class InvoiceController {
 
       const invoice = await Invoice.create({
         orgId,
-        contactId,
         contactPhone,
         code,
         currency,
@@ -134,43 +130,14 @@ Powered by LeadsBox`;
       const org = await Org.findById(orgId).lean();
       const sellerName = org?.name || 'Your Business';
 
-      // Get buyer name from Lead and User models
-      let buyerName = 'Valued Customer';
-      try {
-        // First try to find the lead using contactId
-        const lead = await LeadModel.findOne({ _id: invoice.contactId }).lean();
-
-        // If no lead found by _id, try to find by conversationId as a fallback
-        const foundLead =
-          lead ||
-          (await LeadModel.findOne({
-            conversationId: invoice.contactId,
-          }).lean());
-
-        if (foundLead?.userId) {
-          const user = await UserModel.findById(foundLead.userId).lean();
-          if (user?.username) {
-            buyerName = user.username;
-          } else if (user?.email) {
-            buyerName = user.email.split('@')[0]; // Use email prefix if username not available
-          }
-        } else if (foundLead?.providerId) {
-          // If no userId but we have providerId, use that as the name
-          buyerName = `Customer ${foundLead.providerId.substring(0, 6)}`;
-        }
-      } catch (e) {
-        console.error('Error fetching buyer info:', e);
-      }
-
       // Create receipt
       const receipt = new Receipt({
         orgId: invoice.orgId,
         invoiceId: invoice._id,
-        contactId: invoice.contactId,
         receiptNumber: generateReceiptCode(),
         amount: invoice.total,
         sellerName,
-        buyerName,
+        buyerName: 'Customer',
       });
       await receipt.save();
 
@@ -182,7 +149,7 @@ Powered by LeadsBox`;
         const receiptMsg = `
 *Payment Receipt: ${receipt.receiptNumber}*
 
-Dear ${buyerName},
+Dear Customer,
 
 Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
 
@@ -351,33 +318,31 @@ Powered by LeadsBox`;
       const org = await Org.findById(orgId).lean();
       const sellerName = org?.name || 'Your Business';
 
-      const lead = await LeadModel.findById(invoice.contactId);
-      let buyerName = 'Valued Customer'; // Default name
-      if (lead) {
-        const user = await UserModel.findById(lead.userId);
-        if (user && user.username) {
-          buyerName = user.username;
-        }
+      const contactPhone = invoice.contactPhone;
+      if (!contactPhone) {
+        console.warn('No contact phone found on invoice for notification');
       }
 
-      // Create and save the receipt
-      const receipt = new Receipt({
+      // Create receipt
+      const receipt = await Receipt.create({
         orgId: invoice.orgId,
         invoiceId: invoice._id,
-        contactId: invoice.contactId,
         receiptNumber: generateReceiptCode(),
         amount: invoice.total,
-        sellerName: sellerName,
-        buyerName: buyerName,
+        sellerName: org?.name || 'Your Business',
+        buyerName: 'Customer',
+        items: invoice.items,
+        paymentMethod: 'cash',
+        reference: 'cash',
+        status: 'completed',
       });
-      await receipt.save();
 
       // Send enhanced WhatsApp receipt
       if (invoice.contactPhone) {
         const receiptMsg = `
 *Payment Receipt: ${receipt.receiptNumber}*
 
-Dear ${buyerName},
+Dear Customer,
 
 Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
 

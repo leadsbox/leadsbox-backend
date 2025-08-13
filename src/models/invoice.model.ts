@@ -8,7 +8,6 @@ export interface InvoiceItem {
 
 export interface Invoice {
   orgId: Types.ObjectId;
-  contactId: Types.ObjectId;
   contactPhone?: string;
   code: string;
   currency: string;
@@ -28,7 +27,6 @@ const InvoiceItemSchema = new Schema<InvoiceItem>({
 
 const InvoiceSchema = new Schema<Invoice>({
   orgId: { type: Schema.Types.ObjectId, required: true, index: true },
-  contactId: { type: Schema.Types.ObjectId, ref: 'Lead', required: true, index: true },
   contactPhone: { type: String },
   code: { type: String, required: true },
   currency: { type: String, default: 'NGN' },
