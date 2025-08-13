@@ -16,11 +16,12 @@ import { UserModel } from '../models/user.model';
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
+      // const orgIdHeader = req.header('x-org-id');
+      // if (!orgIdHeader)
+      //   ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
+      // const orgId = new Types.ObjectId(orgIdHeader);
       const {
+        orgId,
         contactId,
         items = [],
         currency = 'NGN',
@@ -91,7 +92,7 @@ Powered by LeadsBox`;
         { status: 'pending_confirmation' },
         { new: true }
       );
-      console.log('invoice', invoice)
+      console.log('invoice', invoice);
 
       if (!invoice) {
         res
@@ -132,16 +133,20 @@ Powered by LeadsBox`;
       // Get business and customer info
       const org = await Org.findById(orgId).lean();
       const sellerName = org?.name || 'Your Business';
-      
+
       // Get buyer name from Lead and User models
       let buyerName = 'Valued Customer';
       try {
         // First try to find the lead using contactId
         const lead = await LeadModel.findOne({ _id: invoice.contactId }).lean();
-        
+
         // If no lead found by _id, try to find by conversationId as a fallback
-        const foundLead = lead || await LeadModel.findOne({ conversationId: invoice.contactId }).lean();
-        
+        const foundLead =
+          lead ||
+          (await LeadModel.findOne({
+            conversationId: invoice.contactId,
+          }).lean());
+
         if (foundLead?.userId) {
           const user = await UserModel.findById(foundLead.userId).lean();
           if (user?.username) {
@@ -189,14 +194,14 @@ Powered by LeadsBox`;
         await sendWhatsAppText(invoice.contactPhone, receiptMsg);
       }
 
-      res.json({ 
-        ok: true, 
+      res.json({
+        ok: true,
         invoice,
         receipt: {
           id: receipt._id,
           number: receipt.receiptNumber,
-          url: receiptUrl
-        }
+          url: receiptUrl,
+        },
       });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -301,8 +306,8 @@ Powered by LeadsBox`;
         {
           receipt: {
             ...receipt,
-            invoiceCode: (receipt as any).invoiceId?.code
-          }
+            invoiceCode: (receipt as any).invoiceId?.code,
+          },
         },
         'Receipt retrieved successfully',
         StatusCode.OK
@@ -341,7 +346,7 @@ Powered by LeadsBox`;
       }
 
       await invoice.updateOne({ status: 'paid' });
-      
+
       // Fetch seller and buyer names
       const org = await Org.findById(orgId).lean();
       const sellerName = org?.name || 'Your Business';
@@ -384,15 +389,15 @@ Powered by LeadsBox`;
 
       // Generate the receipt URL
       const receiptUrl = `https://800281810a4d.ngrok-free.app/api/invoices/receipts/${receipt._id}`;
-      
+
       ResponseUtils.success(
         res,
-        { 
-          ok: true, 
+        {
+          ok: true,
           receiptNumber: receipt.receiptNumber,
           receiptUrl,
           receiptId: receipt._id,
-          invoice: invoice
+          invoice: invoice,
         },
         'Payment verified and receipt sent successfully',
         StatusCode.OK

@@ -15,6 +15,7 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import invoiceRoutes from './routes/invoices.routes';
 import settingsRoutes from './routes/settings.routes';
+import orgRoutes from './routes/org.routes';
 
 const app = express();
 const corsOptions = {
@@ -75,6 +76,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/orgs', orgRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3003;
