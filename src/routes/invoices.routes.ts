@@ -12,4 +12,10 @@ router.get('/verify/queue/list', InvoiceCtrl.getVerifyQueue.bind(InvoiceCtrl));
 router.post('/claims/:id/approve', InvoiceCtrl.approveClaim.bind(InvoiceCtrl));
 router.post('/claims/:id/reject', InvoiceCtrl.rejectClaim.bind(InvoiceCtrl));
 
+// Receipt routes
+router.get(
+  '/receipts/:receiptId',
+  InvoiceCtrl.getReceipt.bind(InvoiceCtrl)
+);
+
 export default router;

@@ -91,6 +91,7 @@ Powered by LeadsBox`;
         { status: 'pending_confirmation' },
         { new: true }
       );
+      console.log('invoice', invoice)
 
       if (!invoice) {
         res
@@ -128,14 +129,59 @@ Powered by LeadsBox`;
         return;
       }
 
+      // Get business and customer info
       const org = await Org.findById(orgId).lean();
-      const businessName = org?.name || 'Your Business';
+      const sellerName = org?.name || 'Your Business';
+      
+      // Get buyer name from Lead and User models
+      let buyerName = 'Valued Customer';
+      try {
+        // First try to find the lead using contactId
+        const lead = await LeadModel.findOne({ _id: invoice.contactId }).lean();
+        
+        // If no lead found by _id, try to find by conversationId as a fallback
+        const foundLead = lead || await LeadModel.findOne({ conversationId: invoice.contactId }).lean();
+        
+        if (foundLead?.userId) {
+          const user = await UserModel.findById(foundLead.userId).lean();
+          if (user?.username) {
+            buyerName = user.username;
+          } else if (user?.email) {
+            buyerName = user.email.split('@')[0]; // Use email prefix if username not available
+          }
+        } else if (foundLead?.providerId) {
+          // If no userId but we have providerId, use that as the name
+          buyerName = `Customer ${foundLead.providerId.substring(0, 6)}`;
+        }
+      } catch (e) {
+        console.error('Error fetching buyer info:', e);
+      }
 
+      // Create receipt
+      const receipt = new Receipt({
+        orgId: invoice.orgId,
+        invoiceId: invoice._id,
+        contactId: invoice.contactId,
+        receiptNumber: generateReceiptCode(),
+        amount: invoice.total,
+        sellerName,
+        buyerName,
+      });
+      await receipt.save();
+
+      // Generate receipt URL
+      const receiptUrl = `https://800281810a4d.ngrok-free.app/api/invoices/receipts/${receipt._id}`;
+
+      // Send WhatsApp with receipt info
       if (invoice.contactPhone) {
         const receiptMsg = `
-Dear ${businessName},
+*Payment Receipt: ${receipt.receiptNumber}*
 
-Your payment of ₦${invoice.total} for invoice ${invoice.code} has been confirmed.
+Dear ${buyerName},
+
+Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
+
+View your receipt: ${receiptUrl}
 
 Thank you for your business!
 
@@ -143,7 +189,15 @@ Powered by LeadsBox`;
         await sendWhatsAppText(invoice.contactPhone, receiptMsg);
       }
 
-      res.json({ ok: true, invoice });
+      res.json({ 
+        ok: true, 
+        invoice,
+        receipt: {
+          id: receipt._id,
+          number: receipt.receiptNumber,
+          url: receiptUrl
+        }
+      });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -230,6 +284,34 @@ Powered by LeadsBox`;
     }
   }
 
+  public async getReceipt(req: Request, res: Response): Promise<void> {
+    try {
+      const { receiptId } = req.params;
+      const receipt = await Receipt.findById(receiptId)
+        .populate('invoiceId', 'code')
+        .lean();
+
+      if (!receipt) {
+        ResponseUtils.error(res, 'Receipt not found', StatusCode.NOT_FOUND);
+        return;
+      }
+
+      ResponseUtils.success(
+        res,
+        {
+          receipt: {
+            ...receipt,
+            invoiceCode: (receipt as any).invoiceId?.code
+          }
+        },
+        'Receipt retrieved successfully',
+        StatusCode.OK
+      );
+    } catch (e: any) {
+      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   public async approveClaim(req: Request, res: Response): Promise<void> {
     try {
       const orgIdHeader = req.header('x-org-id');
@@ -300,9 +382,18 @@ Powered by LeadsBox`;
         await sendWhatsAppText(invoice.contactPhone, receiptMsg);
       }
 
+      // Generate the receipt URL
+      const receiptUrl = `https://800281810a4d.ngrok-free.app/api/invoices/receipts/${receipt._id}`;
+      
       ResponseUtils.success(
         res,
-        { ok: true, receiptNumber: receipt.receiptNumber },
+        { 
+          ok: true, 
+          receiptNumber: receipt.receiptNumber,
+          receiptUrl,
+          receiptId: receipt._id,
+          invoice: invoice
+        },
         'Payment verified and receipt sent successfully',
         StatusCode.OK
       );
