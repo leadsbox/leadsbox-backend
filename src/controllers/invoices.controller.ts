@@ -8,6 +8,10 @@ import { generateInvoiceCode } from '../utils/invoiceCode';
 import { sendWhatsAppText } from '../service/receipt.service';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types';
+import { generateReceiptCode } from '../utils/receiptCode';
+import Receipt from '../models/receipt.model';
+import { LeadModel } from '../models/leads.model';
+import { UserModel } from '../models/user.model';
 
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
@@ -255,10 +259,51 @@ Powered by LeadsBox`;
       }
 
       await invoice.updateOne({ status: 'paid' });
+      
+      // Fetch seller and buyer names
+      const org = await Org.findById(orgId).lean();
+      const sellerName = org?.name || 'Your Business';
+
+      const lead = await LeadModel.findById(invoice.contactId);
+      let buyerName = 'Valued Customer'; // Default name
+      if (lead) {
+        const user = await UserModel.findById(lead.userId);
+        if (user && user.username) {
+          buyerName = user.username;
+        }
+      }
+
+      // Create and save the receipt
+      const receipt = new Receipt({
+        orgId: invoice.orgId,
+        invoiceId: invoice._id,
+        contactId: invoice.contactId,
+        receiptNumber: generateReceiptCode(),
+        amount: invoice.total,
+        sellerName: sellerName,
+        buyerName: buyerName,
+      });
+      await receipt.save();
+
+      // Send enhanced WhatsApp receipt
+      if (invoice.contactPhone) {
+        const receiptMsg = `
+*Payment Receipt: ${receipt.receiptNumber}*
+
+Dear ${buyerName},
+
+Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
+
+Thank you for your business!
+
+Powered by LeadsBox`;
+        await sendWhatsAppText(invoice.contactPhone, receiptMsg);
+      }
+
       ResponseUtils.success(
         res,
-        { ok: true },
-        'Claim approved successfully',
+        { ok: true, receiptNumber: receipt.receiptNumber },
+        'Payment verified and receipt sent successfully',
         StatusCode.OK
       );
     } catch (e: any) {
