@@ -1,89 +1,68 @@
-import { prisma } from '../lib/db/prisma';
-import type { Prisma } from '../generated/prisma';
+import { Prisma, prisma, UserRole } from '../lib/db/prisma';
 
-// Define types based on Prisma schema
+const OrgIncludeFull = {
+  owner: true,
+  members: { include: { user: true } },
+  bankAccounts: true,
+} as const;
 type Organization = Prisma.OrganizationGetPayload<{
-  include: {
-    owner: true;
-    members: {
-      include: {
-        user: true;
-      };
-    };
-    bankAccounts: true;
-  };
+  include: typeof OrgIncludeFull;
 }>;
 
 type OrganizationMember = Prisma.OrganizationMemberGetPayload<{
-  include: {
-    user: true;
-    organization: true;
-  };
+  include: { user: true; organization: true };
 }>;
 
 type BankAccount = Prisma.BankAccountGetPayload<{
-  include: {
-    organization: true;
-  };
+  include: { organization: true };
 }>;
 
 type User = Prisma.UserGetPayload<{
-  include: {
-    organizations: true;
-    ownedOrganizations: true;
-  };
+  include: { organizations: true; ownedOrganizations: true };
 }>;
 
 class OrganizationService {
   /**
    * Create a new organization
    */
-  async create(data: Prisma.OrganizationCreateInput & {
-    settings?: {
-      currency?: string;
-      timezone?: string;
-      dateFormat?: string;
-    };
-  }): Promise<Organization> {
+  async create(
+    data: Prisma.OrganizationCreateInput & {
+      settings?: {
+        currency?: string;
+        timezone?: string;
+        dateFormat?: string;
+      };
+    }
+  ): Promise<Organization> {
     return prisma.organization.create({
       data: {
         ...data,
         settings: data.settings || {
-          currency: 'NGN',  // Default currency
-          timezone: 'UTC',  // Default timezone
-          dateFormat: 'YYYY-MM-DD'  // Default date format
-        }
+          currency: 'NGN', // Default currency
+          timezone: 'UTC', // Default timezone
+          dateFormat: 'YYYY-MM-DD', // Default date format
+        },
       },
       include: {
         owner: true,
         members: {
           include: {
-            user: true
-          }
+            user: true,
+          },
         },
-        bankAccounts: true
-      }
+        bankAccounts: true,
+      },
     });
   }
 
   /**
-   * Find an organization by ID with optional relations
+   * Find an organization by ID (always returns full shape)
+   * If you really need a customizable include, I show a generic overload below.
    */
-  async findById(
-    id: string,
-    include: Prisma.OrganizationInclude = {
-      owner: true,
-      members: {
-        include: {
-          user: true
-        }
-      },
-      bankAccounts: true
-    }
-  ): Promise<Organization | null> {
+  async findById(id: string): Promise<Organization | null> {
     return prisma.organization.findUnique({
       where: { id },
-      include
+      include: OrgIncludeFull,
     });
   }
 
@@ -93,21 +72,18 @@ class OrganizationService {
   async listUserOrganizations(userId: string): Promise<Organization[]> {
     return prisma.organization.findMany({
       where: {
-        OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } }
-        ]
+        OR: [{ ownerId: userId }, { members: { some: { userId } } }],
       },
       include: {
         owner: true,
         members: {
           include: {
-            user: true
-          }
+            user: true,
+          },
         },
-        bankAccounts: true
+        bankAccounts: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -132,11 +108,11 @@ class OrganizationService {
         owner: true,
         members: {
           include: {
-            user: true
-          }
+            user: true,
+          },
         },
-        bankAccounts: true
-      }
+        bankAccounts: true,
+      },
     });
   }
 
@@ -156,43 +132,45 @@ class OrganizationService {
       data: {
         organization: { connect: { id: orgId } },
         user: { connect: { id: userId } },
-        role
+        role,
       },
       include: {
         user: true,
-        organization: true
-      }
+        organization: true,
+      },
     });
   }
 
   /**
-   * Remove a member from an organization
+   * Remove a member (two-step safety; prevents removing the last owner)
    */
-  async removeMember(orgId: string, userId: string, currentUserId: string): Promise<void> {
-    // Verify current user has permission to remove members
-    await this.verifyUserAccess(orgId, currentUserId, ['ADMIN', 'OWNER']);
+  async removeMember(
+    orgId: string,
+    userId: string,
+    currentUserId: string
+  ): Promise<void> {
+    await this.verifyUserAccess(orgId, currentUserId, [
+      UserRole.ADMIN,
+      UserRole.OWNER,
+    ]);
+
+    const member = await prisma.organizationMember.findFirst({
+      where: { organizationId: orgId, userId },
+      select: { id: true, role: true },
+    });
+    if (!member) return;
+
+    if (member.role === UserRole.OWNER) {
+      const ownerCount = await prisma.organizationMember.count({
+        where: { organizationId: orgId, role: UserRole.OWNER },
+      });
+      if (ownerCount <= 1) {
+        throw new Error('Cannot remove the last owner of the organization');
+      }
+    }
 
     await prisma.organizationMember.deleteMany({
-      where: {
-        organizationId: orgId,
-        userId,
-        // Prevent removing the last owner
-        NOT: {
-          AND: [
-            { role: 'OWNER' },
-            {
-              organization: {
-                members: {
-                  every: {
-                    role: 'OWNER',
-                    userId: userId
-                  }
-                }
-              }
-            }
-          ]
-        }
-      }
+      where: { organizationId: orgId, userId },
     });
   }
 
@@ -211,18 +189,18 @@ class OrganizationService {
     if (data.isDefault) {
       await prisma.bankAccount.updateMany({
         where: { organizationId: orgId, isDefault: true },
-        data: { isDefault: false }
+        data: { isDefault: false },
       });
     }
 
     return prisma.bankAccount.create({
       data: {
         ...data,
-        organization: { connect: { id: orgId } }
+        organization: { connect: { id: orgId } },
       },
       include: {
-        organization: true
-      }
+        organization: true,
+      },
     });
   }
 
@@ -237,7 +215,7 @@ class OrganizationService {
     // Get the account to verify organization
     const account = await prisma.bankAccount.findUnique({
       where: { id: accountId },
-      include: { organization: true }
+      include: { organization: true },
     });
 
     if (!account) {
@@ -245,17 +223,20 @@ class OrganizationService {
     }
 
     // Verify user has permission to update this bank account
-    await this.verifyUserAccess(account.organizationId, userId, ['ADMIN', 'OWNER']);
+    await this.verifyUserAccess(account.organizationId, userId, [
+      'ADMIN',
+      'OWNER',
+    ]);
 
     // If setting as default, unset any existing default
     if (data.isDefault === true) {
       await prisma.bankAccount.updateMany({
-        where: { 
+        where: {
           organizationId: account.organizationId,
           id: { not: accountId },
-          isDefault: true 
+          isDefault: true,
         },
-        data: { isDefault: false }
+        data: { isDefault: false },
       });
     }
 
@@ -263,8 +244,8 @@ class OrganizationService {
       where: { id: accountId },
       data,
       include: {
-        organization: true
-      }
+        organization: true,
+      },
     });
   }
 
@@ -275,7 +256,7 @@ class OrganizationService {
     // Get the account to verify organization
     const account = await prisma.bankAccount.findUnique({
       where: { id: accountId },
-      include: { organization: true }
+      include: { organization: true },
     });
 
     if (!account) {
@@ -283,10 +264,13 @@ class OrganizationService {
     }
 
     // Verify user has permission to remove this bank account
-    await this.verifyUserAccess(account.organizationId, userId, ['ADMIN', 'OWNER']);
+    await this.verifyUserAccess(account.organizationId, userId, [
+      'ADMIN',
+      'OWNER',
+    ]);
 
     await prisma.bankAccount.delete({
-      where: { id: accountId }
+      where: { id: accountId },
     });
   }
 
@@ -296,36 +280,27 @@ class OrganizationService {
   private async verifyUserAccess(
     orgId: string,
     userId: string,
-    requiredRoles: Array<'ADMIN' | 'MEMBER' | 'OWNER'> = ['MEMBER']
+    requiredRoles: UserRole[] = [UserRole.MEMBER]
   ): Promise<Organization> {
     const org = await prisma.organization.findFirst({
       where: {
         id: orgId,
         OR: [
-          // User is the owner
           { ownerId: userId },
-          // Or user is a member with required role
           {
             members: {
               some: {
                 userId,
-                role: {
-                  in: requiredRoles
-                }
-              }
-            }
-          }
-        ]
+                role: { in: requiredRoles }, // enum array, not strings
+              },
+            },
+          },
+        ],
       },
-      include: {
-        members: true
-      }
+      include: OrgIncludeFull, // must match the Organization alias
     });
 
-    if (!org) {
-      throw new Error('Organization not found or access denied');
-    }
-
+    if (!org) throw new Error('Organization not found or access denied');
     return org;
   }
 }

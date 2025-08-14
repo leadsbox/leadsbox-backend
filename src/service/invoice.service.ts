@@ -1,27 +1,49 @@
-import { prisma } from '../lib/db/prisma';
-import type { Prisma, InvoiceStatus } from '../generated/prisma';
+import { InvoiceStatus, Prisma, prisma } from '../lib/db/prisma';
 import { generateInvoiceCode } from '../utils/invoiceCode';
 
 // Define types based on Prisma schema
-type Invoice = Prisma.InvoiceGetPayload<{
+export type Invoice = Prisma.InvoiceGetPayload<{
   include: {
     organization: true;
     receipts: true;
   };
 }>;
 
-type Receipt = Prisma.ReceiptGetPayload<{
+export type Receipt = Prisma.ReceiptGetPayload<{
   include: {
     invoice: true;
     organization: true;
   };
 }>;
 
-type Organization = Prisma.OrganizationGetPayload<{
+type InvoiceWithOrgReceipts = Prisma.InvoiceGetPayload<{
+  include: { organization: true; receipts: true };
+}>;
+
+type BankAccountWithOrg = Prisma.BankAccountGetPayload<{
+  include: { organization: true };
+}>;
+
+export type Organization = Prisma.OrganizationGetPayload<{
   include: {
     owner: true;
     bankAccounts: true;
   };
+}>;
+
+type InvoiceWithOrgAndReceipts = Prisma.InvoiceGetPayload<{
+  include: {
+    organization: true;
+    receipts: {
+      orderBy: { createdAt: 'desc' };
+      take: 1;
+      include: { organization: true; invoice: true };
+    };
+  };
+}>;
+
+type ReceiptWithOrgAndInvoice = Prisma.ReceiptGetPayload<{
+  include: { organization: true; invoice: true };
 }>;
 
 // Type for invoice items
@@ -30,6 +52,13 @@ interface InvoiceItem {
   qty: number;
   unitPrice: number;
 }
+
+type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
+  include: {
+    organization: true;
+    receipts: true;
+  };
+}>;
 
 class InvoiceService {
   /**
@@ -40,39 +69,41 @@ class InvoiceService {
     contactPhone?: string;
     items: InvoiceItem[];
     currency?: string;
-  }): Promise<Invoice> {
+  }): Promise<InvoiceWithRelations> {
     const { orgId, items, currency = 'NGN' } = data;
-    
-    const subtotal = items.reduce((sum, item) => sum + (item.qty * item.unitPrice), 0);
-    const total = subtotal; // Add tax, discount, etc. if needed
 
-    // Generate unique invoice code
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.qty * item.unitPrice,
+      0
+    );
+    const total = subtotal; // add tax/discount logic later if needed
+
+    // Generate unique invoice code within an organization
     let code: string;
-    let codeExists = true;
-    
-    while (codeExists) {
+    while (true) {
       code = generateInvoiceCode();
       const exists = await prisma.invoice.findFirst({
-        where: { orgId, code }
+        where: { organizationId: orgId, code }, // <-- use organizationId
+        select: { id: true },
       });
-      if (!exists) codeExists = false;
+      if (!exists) break;
     }
 
     return prisma.invoice.create({
       data: {
-        orgId,
-        contactPhone: data.contactPhone,
-        code: code!,
+        organizationId: orgId, // <-- use organizationId
+        contactPhone: data.contactPhone ?? null,
+        code,
         currency,
-        items: items as unknown as Prisma.InputJsonValue, // Proper type for JSON fields
+        items: items as unknown as Prisma.InputJsonValue, // JSON column
         subtotal,
         total,
-        status: 'SENT' as const
+        status: InvoiceStatus.SENT,
       },
       include: {
         organization: true,
-        receipts: true
-      }
+        receipts: true,
+      },
     });
   }
 
@@ -80,34 +111,35 @@ class InvoiceService {
    * Get an invoice by code with organization details
    */
   async getByCode(
-    code: string, 
+    code: string,
     orgId: string
   ): Promise<{
-    invoice: Invoice;
-    bankAccount?: Prisma.BankAccountGetPayload<{ include: { organization: true } }> | null;
+    invoice: InvoiceWithOrgReceipts;
+    bankAccount?: BankAccountWithOrg | null;
   } | null> {
     // Use the compound unique constraint for lookup
     const invoice = await prisma.invoice.findUnique({
-      where: { 
-        organizationId_code: { 
-          code, 
-          organizationId: orgId 
-        } 
+      where: {
+        organizationId_code: {
+          code,
+          organizationId: orgId, // <- correct field name
+        },
       },
       include: {
         organization: true,
-        receipts: true
-      }
+        receipts: true,
+      },
     });
 
     if (!invoice) return null;
 
-    // Get default bank account if needed
+    // Get default bank account (include organization to match the return type)
     const bankAccount = await prisma.bankAccount.findFirst({
       where: {
-        organizationId: invoice.orgId,
-        isDefault: true
-      }
+        organizationId: invoice.organizationId, // <- correct field name
+        isDefault: true,
+      },
+      include: { organization: true },
     });
 
     return { invoice, bankAccount };
@@ -117,7 +149,7 @@ class InvoiceService {
    * Confirm payment for an invoice
    */
   async confirmPayment(
-    code: string, 
+    code: string,
     amount: number
   ): Promise<{ invoice: Invoice; receipt: Receipt }> {
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -125,7 +157,7 @@ class InvoiceService {
       // First find the invoice to get its ID
       const existingInvoice = await tx.invoice.findFirst({
         where: { code },
-        select: { id: true, organizationId: true }
+        select: { id: true, organizationId: true },
       });
 
       if (!existingInvoice) {
@@ -133,18 +165,18 @@ class InvoiceService {
       }
 
       const invoice = await tx.invoice.update({
-        where: { 
+        where: {
           id: existingInvoice.id,
-          organizationId: existingInvoice.organizationId
+          organizationId: existingInvoice.organizationId,
         },
         data: {
           status: 'PAID' as const,
           // Add payment date or other relevant fields
         },
-        include: { 
+        include: {
           organization: true,
-          receipts: true
-        }
+          receipts: true,
+        },
       });
 
       // 2. Create receipt
@@ -155,12 +187,12 @@ class InvoiceService {
           amount,
           receiptNumber: `RCPT-${Date.now()}`,
           sellerName: invoice.organization.name,
-          buyerName: invoice.contactPhone || 'Customer'
+          buyerName: invoice.contactPhone || 'Customer',
         },
         include: {
           invoice: true,
-          organization: true
-        }
+          organization: true,
+        },
       });
 
       return { invoice, receipt };
@@ -171,46 +203,47 @@ class InvoiceService {
    * Verify payment status
    */
   async verifyPayment(
-    code: string, 
+    code: string,
     amount: number,
     orgId: string
   ): Promise<{
-    invoice: Invoice | null;
+    invoice: InvoiceWithOrgAndReceipts | null;
     isPaid: boolean;
-    status: string;
-    receipt?: Receipt;
+    status: 'NOT_FOUND' | 'PENDING' | 'PAID';
+    receipt?: ReceiptWithOrgAndInvoice;
   }> {
-    // Find invoice using the compound unique constraint
     const invoice = await prisma.invoice.findUnique({
-      where: { 
-        organizationId_code: { 
-          code, 
-          organizationId: orgId 
-        } 
-      },
+      where: { organizationId_code: { code, organizationId: orgId } },
       include: {
         organization: true,
-        receipts: true
-      }
+        receipts: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: { organization: true, invoice: true },
+        },
+      },
     });
 
     if (!invoice) {
-      return { 
-        isPaid: false, 
-        invoice: null, 
-        status: 'NOT_FOUND' 
-      };
+      return { invoice: null, isPaid: false, status: 'NOT_FOUND' };
     }
 
-    const totalPaid = invoice.receipts.reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
+    // If you truly want total paid, fetch all receipts (separate query) or remove take:1 above.
+    // Here we'll compute from all (cheapest is a second query):
+    const receiptsSum = await prisma.receipt.aggregate({
+      _sum: { amount: true },
+      where: { invoiceId: invoice.id },
+    });
+    const totalPaid = receiptsSum._sum.amount ?? 0;
+
     const isPaid = totalPaid >= invoice.total;
-    const status = isPaid ? 'PAID' : 'PENDING';
+    const status: 'PENDING' | 'PAID' = isPaid ? 'PAID' : 'PENDING';
 
     return {
-      isPaid,
       invoice,
+      isPaid,
       status,
-      receipt: isPaid ? invoice.receipts[0] : undefined
+      receipt: invoice.receipts[0], // now has organization & invoice included
     };
   }
 
@@ -218,19 +251,19 @@ class InvoiceService {
    * Update invoice status
    */
   async updateStatus(
-    code: string, 
+    code: string,
     status: InvoiceStatus,
-    orgId: string 
+    orgId: string
   ): Promise<Invoice> {
     return prisma.invoice.update({
       where: {
         organizationId_code: {
           organizationId: orgId,
-          code: code
-        }
+          code: code,
+        },
       },
       data: { status },
-      include: { organization: true, receipts: true }
+      include: { organization: true, receipts: true },
     });
   }
 }

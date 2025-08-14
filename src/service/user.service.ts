@@ -1,5 +1,4 @@
-import { prisma } from '../lib/db/prisma';
-import type { Prisma } from '../generated/prisma';
+import { Prisma, prisma } from '../lib/db/prisma';
 import { UserProvider } from '../types';
 
 // Define the User type with related fields
@@ -12,10 +11,6 @@ type User = Prisma.UserGetPayload<{
     leads?: true;
   };
 }>;
-
-// Define input types for user operations
-type CreateUserInput = Prisma.UserCreateInput;
-type UpdateUserInput = Prisma.UserUpdateInput;
 
 class UserService {
   /**
@@ -48,7 +43,10 @@ class UserService {
   /**
    * Find a user by provider and provider ID
    */
-  async findByProvider(provider: UserProvider, providerId: string): Promise<User | null> {
+  async findByProvider(
+    provider: UserProvider,
+    providerId: string
+  ): Promise<User | null> {
     return prisma.user.findFirst({
       where: {
         provider,

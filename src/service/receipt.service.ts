@@ -1,41 +1,11 @@
-import { prisma } from '../lib/db/prisma';
+import { Prisma, prisma } from '../lib/db/prisma';
 import { generateReceiptCode } from '../utils/receiptCode';
+import type { Receipt } from './invoice.service';
 
 // Define the include type for receipts
 interface ReceiptInclude {
   invoice?: boolean;
   organization?: boolean;
-}
-
-// Define the base interfaces
-interface Receipt {
-  id: string;
-  organizationId: string;
-  invoiceId: string;
-  receiptNumber: string;
-  amount: number;
-  sellerName: string;
-  buyerName: string;
-  createdAt: Date;
-  updatedAt: Date;
-  invoice?: Invoice;
-  organization?: Organization;
-}
-
-interface Invoice {
-  id: string;
-  code: string;
-  amount: number;
-  currency: string;
-  status: string;
-  // Add other invoice fields as needed
-}
-
-interface Organization {
-  id: string;
-  name: string;
-  currency: string;
-  // Add other organization fields as needed
 }
 
 type ReceiptWhereInput = {
@@ -52,6 +22,18 @@ type ReceiptWhereInput = {
   };
 };
 
+type ReceiptWithInvoiceOrg = Prisma.ReceiptGetPayload<{
+  include: {
+    invoice: {
+      include: {
+        organization: { include: { owner: true; bankAccounts: true } };
+        receipts: true;
+      };
+    };
+    organization: { include: { owner: true; bankAccounts: true } };
+  };
+}>;
+
 class ReceiptService {
   /**
    * Create a new receipt for an invoice
@@ -62,34 +44,39 @@ class ReceiptService {
     amount: number;
     sellerName: string;
     buyerName: string;
-  }): Promise<Receipt & { invoice: Invoice; organization: Organization }> {
+  }): Promise<ReceiptWithInvoiceOrg> {
     const { orgId, invoiceId, amount, sellerName, buyerName } = data;
-    
+
     // Generate unique receipt number
     let receiptNumber: string;
     let receiptExists = true;
-    
+
     while (receiptExists) {
       receiptNumber = generateReceiptCode();
       const exists = await prisma.receipt.findFirst({
-        where: { receiptNumber }
+        where: { receiptNumber },
       });
       if (!exists) receiptExists = false;
     }
 
     return prisma.receipt.create({
       data: {
-        orgId,
+        organizationId: orgId,
         invoiceId,
         receiptNumber: receiptNumber!,
         amount,
         sellerName,
-        buyerName
+        buyerName,
       },
       include: {
-        invoice: true,
-        organization: true
-      }
+        invoice: {
+          include: {
+            organization: { include: { owner: true, bankAccounts: true } },
+            receipts: true,
+          },
+        },
+        organization: { include: { owner: true, bankAccounts: true } },
+      },
     });
   }
 
@@ -100,16 +87,17 @@ class ReceiptService {
     id: string,
     include: ReceiptInclude = {
       invoice: true,
-      organization: true
+      organization: true,
     }
-  ): Promise<(Receipt & {
-    invoice?: Invoice;
-    organization?: Organization;
-  }) | null> {
+  ): Promise<Prisma.ReceiptGetPayload<{
+    include: typeof include;
+  }> | null> {
     return prisma.receipt.findUnique({
       where: { id },
-      include
-    });
+      include,
+    }) as Promise<Prisma.ReceiptGetPayload<{
+      include: typeof include;
+    }> | null>;
   }
 
   /**
@@ -125,16 +113,16 @@ class ReceiptService {
     } = {}
   ): Promise<Receipt[]> {
     const { startDate, endDate, minAmount, maxAmount } = filters;
-    
+
     const where: ReceiptWhereInput = { orgId };
-    
+
     // Apply date filters
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = startDate;
       if (endDate) where.createdAt.lte = endDate;
     }
-    
+
     // Apply amount filters
     if (minAmount !== undefined || maxAmount !== undefined) {
       where.amount = {};
@@ -146,9 +134,9 @@ class ReceiptService {
       where,
       include: {
         invoice: true,
-        organization: true
+        organization: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -162,7 +150,7 @@ class ReceiptService {
     try {
       const receipt = await this.getById(receiptId, {
         invoice: true,
-        organization: true
+        organization: true,
       });
 
       if (!receipt) {
@@ -170,15 +158,20 @@ class ReceiptService {
       }
 
       // Generate receipt URL
-      const receiptUrl = `${process.env.PUBLIC_APP_URL || ''}/receipts/${receiptId}`;
-      
+      const receiptUrl = `${
+        process.env.PUBLIC_APP_URL || ''
+      }/receipts/${receiptId}`;
+
       // Create receipt message
+      // Safely access organization currency with a default value
+      const currency = (receipt.organization as any)?.currency || 'NGN';
+
       const message = `
 *Payment Receipt: ${receipt.receiptNumber}*
 
 *Seller:* ${receipt.sellerName}
 *Buyer:* ${receipt.buyerName}
-*Amount:* ${receipt.amount} ${receipt.organization?.currency || 'NGN'}
+*Amount:* ${receipt.amount} ${currency}
 *Date:* ${receipt.createdAt.toLocaleDateString()}
 
 View your receipt: ${receiptUrl}
@@ -190,9 +183,10 @@ View your receipt: ${receiptUrl}
       return { success: true };
     } catch (error) {
       console.error('Error sending WhatsApp receipt:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Failed to send receipt' 
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to send receipt',
       };
     }
   }
@@ -203,26 +197,26 @@ View your receipt: ${receiptUrl}
   async sendWhatsAppText(to: string, text: string): Promise<void> {
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    
+
     if (!phoneNumberId || !token) {
       throw new Error('Missing WhatsApp configuration');
     }
 
     const url = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
-    
+
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
           to,
           type: 'text',
-          text: { body: text }
-        })
+          text: { body: text },
+        }),
       });
 
       if (!response.ok) {
