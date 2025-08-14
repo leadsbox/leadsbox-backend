@@ -5,7 +5,7 @@ const router = Router();
 
 router.get(
   '/conversations',
-  InstagramCtrl.getConversations.bind(InstagramCtrl),
+  InstagramCtrl.getConversations.bind(InstagramCtrl)
 );
 router.post('/reply', InstagramCtrl.postReply.bind(InstagramCtrl));
 
