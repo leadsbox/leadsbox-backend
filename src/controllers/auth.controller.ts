@@ -6,6 +6,8 @@ import { StatusCode } from '../types/response';
 import AuthValidations from '../validations/auth.validation';
 import { mongoose } from '../config/db';
 import { mongoUserService } from '../service/mongo';
+import { userService } from '../service/user.service';
+import { v4 as uuidv4 } from 'uuid';
 import { mailerService } from '../service/nodemailer';
 import { UserProvider } from '../types';
 
@@ -23,11 +25,8 @@ class AuthController {
 
       const { username, email, password } = req.body;
 
-      const usernameExists = await mongoUserService.findOne(
-        { username },
-        { session: null }
-      );
-      if (usernameExists.status && usernameExists.data) {
+      const usernameExists = await userService.findByUsername(username);
+      if (usernameExists) {
         return ResponseUtils.error(
           res,
           'Username is already taken',
@@ -35,11 +34,8 @@ class AuthController {
         );
       }
 
-      const emailExists = await mongoUserService.findOne(
-        { email },
-        { session: null }
-      );
-      if (emailExists.status && emailExists.data) {
+      const emailExists = await userService.findByEmail(email);
+      if (emailExists) {
         return ResponseUtils.error(
           res,
           'Email is already registered',
@@ -47,7 +43,7 @@ class AuthController {
         );
       }
 
-      const _id = new mongoose.Types.ObjectId();
+      const userId = uuidv4();
       const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
       const Auth = {
         PUBLIC_KEY,
@@ -58,39 +54,26 @@ class AuthController {
       };
 
       const token = await Toolbox.createToken({
-        userId: _id.toString(),
+        userId,
         email,
         username,
         provider: UserProvider.LEADSBOX,
         Auth,
       });
 
-      const newUser = await mongoUserService.updateOne(
-        {
-          _id,
-        },
-        {
-          userId: _id.toString(),
-          username,
-          email,
-          password: CryptoUtils.hashPassword(password),
-          token,
-          provider: UserProvider.LEADSBOX,
-          providerId: _id.toString(),
-        }
-      );
-
-      if (!newUser.status) {
-        return ResponseUtils.error(
-          res,
-          'Failed to create user',
-          StatusCode.BAD_REQUEST
-        );
-      }
+      const newUser = await userService.create({
+        userId,
+        username,
+        email,
+        password: CryptoUtils.hashPassword(password),
+        token,
+        provider: UserProvider.LEADSBOX,
+        providerId: userId,
+      });
 
       return ResponseUtils.success(
         res,
-        { profile: newUser.data },
+        { profile: newUser },
         'User registered successfully!',
         StatusCode.CREATED
       );
@@ -117,10 +100,8 @@ class AuthController {
         );
       }
 
-      const user = await mongoUserService.findOneMongo({
-        $or: [{ email: identifier }, { username: identifier }],
-      });
-      if (!user.status) {
+      const user = await userService.findByEmailOrUsername(identifier);
+      if (!user) {
         return ResponseUtils.error(
           res,
           'User not found',
@@ -128,10 +109,7 @@ class AuthController {
         );
       }
 
-      if (
-        user.data &&
-        !CryptoUtils.checkPassword(password, user.data.password ?? '')
-      ) {
+      if (!CryptoUtils.checkPassword(password, user.password ?? '')) {
         return ResponseUtils.error(
           res,
           'Invalid password',
@@ -149,17 +127,17 @@ class AuthController {
       };
 
       const token = await Toolbox.createToken({
-        userId: user.data!.userId,
-        email: user.data!.email,
-        username: user.data!.username,
-        provider: user.data!.provider,
+        userId: user.userId,
+        email: user.email,
+        username: user.username || '',
+        provider: user.provider as UserProvider,
         Auth,
       });
 
-      await mongoUserService.updateOne({ _id: user.data!._id }, { token });
+      await userService.update(user.id, { token });
       return ResponseUtils.success(
         res,
-        { profile: user.data, token, PUBLIC_KEY },
+        { profile: user, token, PUBLIC_KEY },
         'Login successful',
         StatusCode.OK
       );
