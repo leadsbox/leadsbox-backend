@@ -1,6 +1,6 @@
 # Leadsbox Backend
 
-Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) into actionable sales leads. This project powers the backend for Leadsbox, supporting integrations with platforms like Instagram, Telegram, and WhatsApp, and is built with Node.js, Express, TypeScript, and MongoDB.
+Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) into actionable sales leads. This project powers the backend for Leadsbox, supporting integrations with platforms like Instagram, Telegram, and WhatsApp, and is built with Node.js, Express, TypeScript, and PostgreSQL using Prisma.
 
 ## Features
 
@@ -15,7 +15,7 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 ## Tech Stack
 
 - **Backend:** Node.js, Express, TypeScript
-- **Database:** MongoDB (Mongoose ODM)
+- **Database:** PostgreSQL (Prisma ORM)
 - **Architecture:** Class-based controllers and service layers
 - **Integrations:**
   - Instagram Graph API
@@ -32,7 +32,7 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 │   ├── app.ts                # Express app entry point
 │   ├── controllers/          # Controllers for Instagram, Telegram, WhatsApp, Leads, etc.
 │   ├── service/              # Business logic and integrations
-│   ├── models/               # Mongoose models for Users, Leads, Transactions, etc.
+│   ├── models/               # Database models for Users, Leads, Transactions, etc.
 │   ├── routes/               # API route definitions
 │   ├── types/                # TypeScript types
 │   ├── utils/                # Utility functions
@@ -49,7 +49,7 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 
 - Node.js (v18+ recommended)
 - Yarn or npm
-- MongoDB Atlas account (or local MongoDB instance)
+- PostgreSQL database instance
 
 ### Installation
 
@@ -66,7 +66,7 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
    ```
 3. **Configure environment variables:**
 
-   - Copy `.env.example` to `.env` and fill in the required values (e.g., MongoDB URI, Telegram Bot Token, WhatsApp credentials, Instagram credentials).
+   - Copy `.env.example` to `.env` and fill in the required values (e.g., PostgreSQL `DATABASE_URL`, Telegram Bot Token, WhatsApp credentials, Instagram credentials).
 
 4. **Run the development server:**
    ```bash
@@ -179,7 +179,7 @@ curl --location --request POST 'http://YOUR_NEW_NGROK_URL/api/invoices/:invoice_
 1. Telegram bot is set up and webhook is configured to `/api/telegram/webhook`.
 2. Incoming Telegram messages are received by the `TelegramController.handleUpdate` method.
 3. The message text is analyzed and tagged using the robust `LeadController.tagConversation` logic, which uses a comprehensive set of lead labels.
-4. The lead is stored in MongoDB using the `LeadService`.
+4. The lead is stored in PostgreSQL using the `LeadService`.
 5. Auto-replies and follow-up scheduling are supported.
 
 ### To log in to the app frontend, sign in using Telegram. 
@@ -211,7 +211,7 @@ curl --location --request POST 'http://YOUR_NEW_NGROK_URL/api/invoices/:invoice_
 2. Incoming WhatsApp messages are received by the `WhatsappController.handleUpdate` method.
 3. The webhook signature is verified for authenticity.
 4. The message text is analyzed and tagged using the same `LeadController.tagConversation` logic.
-5. The lead is stored in MongoDB using the `LeadService`.
+5. The lead is stored in PostgreSQL using the `LeadService`.
 6. Auto-replies and follow-up scheduling are supported.
 
 ### WhatsApp Cloud API **Account‑Linking** Flow (OAuth)
@@ -257,7 +257,7 @@ Body: { accessToken, wabaId } ⇒ returns { accessToken, wabaId, phoneNumbers:[{
 
 POST /api/auth/whatsapp/connect
 
-Body: { accessToken, wabaId, phoneId, userId } ⇒ Saves the connection in MongoDB and calls /{wabaId}/subscribed_apps to enable webhooks. Responds "WhatsApp account linked".
+Body: { accessToken, wabaId, phoneId, userId } ⇒ Saves the connection in PostgreSQL and calls /{wabaId}/subscribed_apps to enable webhooks. Responds "WhatsApp account linked".
 
 After step 5 inbound messages for that phone number will hit /api/whatsapp/webhook, be tagged by Leadsbox, and appear in the unified inbox.
 
