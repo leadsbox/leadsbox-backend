@@ -41,6 +41,26 @@ class UserService {
   }
 
   /**
+   * Find a user by username
+   */
+  async findByUsername(username: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { username },
+    });
+  }
+
+  /**
+   * Find a user by either email or username
+   */
+  async findByEmailOrUsername(identifier: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { username: identifier }],
+      },
+    });
+  }
+
+  /**
    * Find a user by provider and provider ID
    */
   async findByProvider(
