@@ -182,3 +182,5 @@ dist
 
 .env
 *.env
+
+/src/generated/prisma

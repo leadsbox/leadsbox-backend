@@ -1,29 +1,246 @@
-import axios from 'axios';
+import { prisma } from '../lib/db/prisma';
+import { generateReceiptCode } from '../utils/receiptCode';
 
-/** Send a simple WhatsApp text (MVP) */
-export async function sendWhatsAppText(to: string, text: string) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  if (!phoneNumberId || !token) throw new Error('Missing WA env vars');
-  const url = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
-  try {
-    const response = await axios.post(url, {
-      messaging_product: 'whatsapp',
-      to,
-      type: 'text',
-      text: { body: text }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+// Define the include type for receipts
+interface ReceiptInclude {
+  invoice?: boolean;
+  organization?: boolean;
+}
+
+// Define the base interfaces
+interface Receipt {
+  id: string;
+  organizationId: string;
+  invoiceId: string;
+  receiptNumber: string;
+  amount: number;
+  sellerName: string;
+  buyerName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  invoice?: Invoice;
+  organization?: Organization;
+}
+
+interface Invoice {
+  id: string;
+  code: string;
+  amount: number;
+  currency: string;
+  status: string;
+  // Add other invoice fields as needed
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  currency: string;
+  // Add other organization fields as needed
+}
+
+type ReceiptWhereInput = {
+  id?: string;
+  orgId?: string;
+  receiptNumber?: string;
+  createdAt?: {
+    gte?: Date;
+    lte?: Date;
+  };
+  amount?: {
+    gte?: number;
+    lte?: number;
+  };
+};
+
+class ReceiptService {
+  /**
+   * Create a new receipt for an invoice
+   */
+  async create(data: {
+    orgId: string;
+    invoiceId: string;
+    amount: number;
+    sellerName: string;
+    buyerName: string;
+  }): Promise<Receipt & { invoice: Invoice; organization: Organization }> {
+    const { orgId, invoiceId, amount, sellerName, buyerName } = data;
+    
+    // Generate unique receipt number
+    let receiptNumber: string;
+    let receiptExists = true;
+    
+    while (receiptExists) {
+      receiptNumber = generateReceiptCode();
+      const exists = await prisma.receipt.findFirst({
+        where: { receiptNumber }
+      });
+      if (!exists) receiptExists = false;
+    }
+
+    return prisma.receipt.create({
+      data: {
+        orgId,
+        invoiceId,
+        receiptNumber: receiptNumber!,
+        amount,
+        sellerName,
+        buyerName
+      },
+      include: {
+        invoice: true,
+        organization: true
       }
     });
-    console.log('response: ', response.data);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(`WA send failed: ${error.response?.status} ${error.response?.data}`);
-    }
-    throw error;
   }
+
+  /**
+   * Get a receipt by ID with related data
+   */
+  async getById(
+    id: string,
+    include: ReceiptInclude = {
+      invoice: true,
+      organization: true
+    }
+  ): Promise<(Receipt & {
+    invoice?: Invoice;
+    organization?: Organization;
+  }) | null> {
+    return prisma.receipt.findUnique({
+      where: { id },
+      include
+    });
+  }
+
+  /**
+   * List receipts for an organization with optional filters
+   */
+  async listByOrg(
+    orgId: string,
+    filters: {
+      startDate?: Date;
+      endDate?: Date;
+      minAmount?: number;
+      maxAmount?: number;
+    } = {}
+  ): Promise<Receipt[]> {
+    const { startDate, endDate, minAmount, maxAmount } = filters;
+    
+    const where: ReceiptWhereInput = { orgId };
+    
+    // Apply date filters
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
+    }
+    
+    // Apply amount filters
+    if (minAmount !== undefined || maxAmount !== undefined) {
+      where.amount = {};
+      if (minAmount !== undefined) where.amount.gte = minAmount;
+      if (maxAmount !== undefined) where.amount.lte = maxAmount;
+    }
+
+    return prisma.receipt.findMany({
+      where,
+      include: {
+        invoice: true,
+        organization: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  /**
+   * Send receipt via WhatsApp
+   */
+  async sendWhatsAppReceipt(
+    receiptId: string,
+    phoneNumber: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const receipt = await this.getById(receiptId, {
+        invoice: true,
+        organization: true
+      });
+
+      if (!receipt) {
+        return { success: false, message: 'Receipt not found' };
+      }
+
+      // Generate receipt URL
+      const receiptUrl = `${process.env.PUBLIC_APP_URL || ''}/receipts/${receiptId}`;
+      
+      // Create receipt message
+      const message = `
+*Payment Receipt: ${receipt.receiptNumber}*
+
+*Seller:* ${receipt.sellerName}
+*Buyer:* ${receipt.buyerName}
+*Amount:* ${receipt.amount} ${receipt.organization?.currency || 'NGN'}
+*Date:* ${receipt.createdAt.toLocaleDateString()}
+
+View your receipt: ${receiptUrl}
+      `.trim();
+
+      // Send WhatsApp message
+      await this.sendWhatsAppText(phoneNumber, message);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending WhatsApp receipt:', error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Failed to send receipt' 
+      };
+    }
+  }
+
+  /**
+   * Send a simple WhatsApp text message
+   */
+  async sendWhatsAppText(to: string, text: string): Promise<void> {
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    
+    if (!phoneNumberId || !token) {
+      throw new Error('Missing WhatsApp configuration');
+    }
+
+    const url = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to,
+          type: 'text',
+          text: { body: text }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`WhatsApp API error: ${JSON.stringify(errorData)}`);
+      }
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      throw error;
+    }
+  }
+}
+
+export const receiptService = new ReceiptService();
+
+export { receiptService as default };
+
+// Keep the original sendWhatsAppText function for backward compatibility
+export async function sendWhatsAppText(to: string, text: string) {
+  return receiptService.sendWhatsAppText(to, text);
 }

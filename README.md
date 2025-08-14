@@ -97,6 +97,208 @@ Leadsbox is a SaaS backend designed to turn social media direct messages (DMs) i
 - **WhatsApp Webhook:** `/api/whatsapp/webhook`
 - **Lead Management:** `/api/leads/*`
 - **Follow-Up Scheduling:** `/api/followup/*`
+- **Invoices:** `/api/invoices/*`
+
+## Invoice Management
+
+### Create an Invoice
+
+**Endpoint:** `POST /api/invoices`
+
+**Request Body:**
+```json
+{
+  "orgId": "64d5f8a9c4b8a1b2c3d4e5f6",
+  "items": [
+    {
+      "name": "Product 1",
+      "quantity": 2,
+      "unitPrice": 1000
+    }
+  ],
+  "currency": "NGN",
+  "contactPhone": "+1234567890"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "64d5f8a9c4b8a1b2c3d4e5f6",
+    "code": "INV-123456",
+    "orgId": "64d5f8a9c4b8a1b2c3d4e5f6",
+    "items": [
+      {
+        "name": "Product 1",
+        "quantity": 2,
+        "unitPrice": 1000
+      }
+    ],
+    "subtotal": 2000,
+    "total": 2000,
+    "status": "sent",
+    "createdAt": "2023-08-10T12:00:00.000Z"
+  }
+}
+```
+
+### Confirm Payment
+
+**Endpoint:** `POST /api/invoices/:code/confirm-payment`
+
+**Request Body:**
+```json
+{
+  "orgId": "64d5f8a9c4b8a1b2c3d4e5f6"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Payment confirmation received. Awaiting verification.",
+  "data": {
+    "_id": "64d5f8a9c4b8a1b2c3d4e5f6",
+    "code": "INV-123456",
+    "status": "pending_confirmation"
+  }
+}
+```
+
+### Verify Payment (Admin)
+
+**Endpoint:** `POST /api/invoices/:code/verify-payment`
+
+**Request Body:**
+```json
+{
+  "orgId": "64d5f8a9c4b8a1b2c3d4e5f6"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Payment verified and receipt generated",
+  "data": {
+    "receipt": {
+      "receiptNumber": "RCPT-789012",
+      "amount": 2000,
+      "status": "completed"
+    },
+    "invoice": {
+      "code": "INV-123456",
+      "status": "paid"
+    }
+  }
+}
+```
+
+## WhatsApp Multitenant Support
+
+Leadsbox supports multiple WhatsApp Business Accounts (WABA) and phone numbers through a multitenant architecture. Here's how it works:
+
+### Key Concepts
+
+1. **Per-User Connections**
+   - Each user can connect their own WhatsApp Business Account
+   - Connections are stored with the user's ID for isolation
+   - Multiple phone numbers per WABA are supported
+
+2. **Connection Flow**
+   - User initiates OAuth flow with Facebook/WhatsApp
+   - Grants permissions to access their WhatsApp Business Account
+   - Selects a phone number to use for messaging
+   - Connection is stored with their user ID
+
+3. **Data Isolation**
+   - All WhatsApp operations are scoped to the authenticated user
+   - Messages and leads are associated with the user's organization
+   - Webhook events are routed to the correct user's connection
+
+### Setting Up WhatsApp Integration
+
+1. **Prerequisites**
+   - Facebook Developer Account
+   - WhatsApp Business Account (WABA)
+   - Verified Business Manager
+
+2. **Configuration**
+   Add these environment variables:
+   ```
+   FACEBOOK_APP_ID=your_app_id
+   FACEBOOK_APP_SECRET=your_app_secret
+   WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
+   WHATSAPP_REDIRECT_URI=your_redirect_uri
+   ```
+
+3. **API Endpoints**
+
+   - **Start WhatsApp Login**
+     `GET /api/whatsapp/login`
+     
+     Initiates the OAuth flow to connect a WhatsApp Business Account.
+
+   - **OAuth Callback**
+     `GET /api/auth/whatsapp/callback`
+     
+     Handles the OAuth callback from WhatsApp.
+
+   - **Select Business**
+     `POST /api/whatsapp/select-business`
+     
+     ```json
+     {
+       "accessToken": "user_access_token",
+       "businessId": "business_manager_id"
+     }
+     ```
+
+   - **Select WhatsApp Account**
+     `POST /api/whatsapp/select-account`
+     
+     ```json
+     {
+       "accessToken": "user_access_token",
+       "wabaId": "whatsapp_business_account_id"
+     }
+     ```
+
+   - **Connect Phone Number**
+     `POST /api/whatsapp/connect`
+     
+     ```json
+     {
+       "accessToken": "user_access_token",
+       "wabaId": "whatsapp_business_account_id",
+       "phoneId": "phone_number_id"
+     }
+     ```
+
+### Webhook Configuration
+
+1. Set up a webhook URL in your WhatsApp Business Account settings:
+   ```
+   https://your-domain.com/api/whatsapp/webhook
+   ```
+
+2. Set the verify token to match your `WHATSAPP_VERIFY_TOKEN` environment variable
+
+3. Subscribe to these webhook events:
+   - messages
+   - message_template_status_update
+
+### Handling Incoming Messages
+
+When a message is received:
+1. The webhook verifies the message signature
+2. The system identifies the user/tenant based on the phone number ID
+3. The message is processed and stored in the user's organization context
+4. Any auto-replies are sent using the user's connected WABA credentials
 
 ## Common API Operations
 

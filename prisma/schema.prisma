@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PENDING_CONFIRMATION
+  PAID
+  PARTIAL
+  CANCELLED
+  VOID
+}
+
+// Models
+model User {
+  id                    String               @id @default(uuid())
+  userId                String               @unique
+  username              String?              @unique
+  email                 String               @unique
+  password              String?
+  token                 String?
+  provider              String?
+  providerId            String?
+  profileImage          String?
+  organizations         OrganizationMember[]
+  ownedOrganizations    Organization[]       @relation("OrganizationOwner")
+  leads                 Lead[]
+  whatsAppConnections   WhatsAppConnection[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@unique([provider, providerId], name: "provider_providerId")
+}
+
+model Organization {
+  id           String               @id @default(uuid())
+  name         String
+  description  String?
+  logoUrl      String?
+  isActive     Boolean              @default(true)
+  settings     Json                 @default("{ \"currency\": \"NGN\", \"timezone\": \"UTC\", \"dateFormat\": \"YYYY-MM-DD\" }")
+  owner        User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  ownerId      String
+  members      OrganizationMember[]
+  bankAccounts BankAccount[]
+  invoices     Invoice[]
+  receipts     Receipt[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String
+  role           UserRole     @default(MEMBER)
+  addedAt        DateTime     @default(now())
+
+  @@unique([organizationId, userId])
+}
+
+model BankAccount {
+  id             String       @id @default(uuid())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  bankName       String
+  accountName    String
+  accountNumber  String
+  isDefault      Boolean      @default(false)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  organizationId String
+  contactPhone  String?
+  code          String
+  currency      String        @default("NGN")
+  items         Json          // Array of InvoiceItem
+  subtotal      Float
+  total         Float
+  status        InvoiceStatus @default(SENT)
+  receipts      Receipt[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([organizationId, code])
+}
+
+model Receipt {
+  id            String      @id @default(uuid())
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  invoice       Invoice     @relation(fields: [invoiceId], references: [id])
+  invoiceId     String
+  receiptNumber String      @unique
+  amount        Float
+  sellerName    String
+  buyerName     String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Lead {
+  id            String       @id @default(uuid())
+  conversationId String
+  user          User         @relation(fields: [userId], references: [id])
+  userId        String
+  provider      String
+  providerId    String
+  transactions  Transaction[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([provider, providerId])
+}
+
+model Transaction {
+  id         String   @id @default(uuid())
+  lead       Lead     @relation(fields: [leadId], references: [id])
+  leadId     String
+  amount     Float
+  currency   String   @default("NGN")
+  status     String
+  type       String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model WhatsAppConnection {
+  id            String   @id @default(uuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  wabaId        String
+  phoneNumberId String
+  accessToken   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, wabaId, phoneNumberId])
+}
