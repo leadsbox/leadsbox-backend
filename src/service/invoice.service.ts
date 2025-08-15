@@ -72,18 +72,25 @@ class InvoiceService {
   }): Promise<InvoiceWithRelations> {
     const { orgId, items, currency = 'NGN' } = data;
 
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true },
+    });
+    if (!org) {
+      throw new Error('Organization not found');
+    }
+
     const subtotal = items.reduce(
       (sum, item) => sum + item.qty * item.unitPrice,
       0
     );
-    const total = subtotal; // add tax/discount logic later if needed
+    const total = subtotal;
 
-    // Generate unique invoice code within an organization
     let code: string;
     while (true) {
       code = generateInvoiceCode();
       const exists = await prisma.invoice.findFirst({
-        where: { organizationId: orgId, code }, // <-- use organizationId
+        where: { organizationId: orgId, code },
         select: { id: true },
       });
       if (!exists) break;

@@ -5,19 +5,17 @@ import Org from '../models/org.model';
 import PaymentClaim from '../models/paymentClaim.model';
 import OrgBankDetails from '../models/orgBankDetails.model';
 import { generateInvoiceCode } from '../utils/invoiceCode';
-import { sendWhatsAppText } from '../service/receipt.service';
+import receiptService, { sendWhatsAppText } from '../service/receipt.service';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types';
+import { prisma } from '../lib/db/prisma';
 import { generateReceiptCode } from '../utils/receiptCode';
 import Receipt from '../models/receipt.model';
+import { invoiceService } from '../service/invoice.service';
 
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
     try {
-      // const orgIdHeader = req.header('x-org-id');
-      // if (!orgIdHeader)
-      //   ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      // const orgId = new Types.ObjectId(orgIdHeader);
       const {
         orgId,
         items = [],
@@ -27,54 +25,52 @@ export class InvoiceController {
         sendText,
       } = req.body || {};
 
-      const subtotal = items.reduce(
-        (s: number, it: any) => s + (it.qty ?? 1) * Number(it.unitPrice),
-        0
-      );
-      const total = subtotal;
-      let code: string;
-
-      // ensure uniqueness per org
-      while (true) {
-        code = generateInvoiceCode();
-        const exists = await Invoice.findOne({ orgId, code });
-        if (!exists) break;
-      }
-
-      const invoice = await Invoice.create({
+      const invoice = await invoiceService.create({
         orgId,
         contactPhone,
-        code,
-        currency,
         items,
-        subtotal,
-        total,
-        status: 'sent',
+        currency,
       });
 
       // optionally auto-send (basic text MVP)
       if (autoSendTo && contactPhone && sendText) {
-        const bank = await OrgBankDetails.findOne({ orgId }).lean();
+        const [bank, org] = await Promise.all([
+          prisma.bankAccount.findFirst({
+            where: {
+              organizationId: orgId,
+              isDefault: true, 
+            },
+          }),
+          prisma.organization.findUnique({
+            where: { id: orgId },
+          }),
+        ]);
+
         const bankLine = bank
           ? `${bank.bankName} • ${bank.accountName} • ${bank.accountNumber}`
           : 'your bank details';
-        const org = await Org.findById(orgId).lean();
+
         const businessName = org?.name || 'Your Business';
         const msg = `
-Invoice ${code} for ${businessName}
-Amount: ₦${total}
-Pay to: ${bankLine}
-Narration: ${code}
-Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${code}
+        Invoice ${invoice.code} for ${businessName}
+        Amount: ₦${(invoice.total / 100).toFixed(2)}
+        Pay to: ${bankLine}
+        Narration: ${invoice.code}
+        Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${invoice.code}
 
-Powered by LeadsBox`;
-        const sentToWhatsApp = await sendWhatsAppText(contactPhone, msg);
+        Powered by LeadsBox`;
+        const sentToWhatsApp = await receiptService.sendWhatsAppText(contactPhone, msg);
         console.log('sentToWhatsApp', sentToWhatsApp);
       }
 
-      res.json({ ok: true, invoice });
+      ResponseUtils.success(
+        res,
+        { invoice },
+        'Invoice created successfully',
+        StatusCode.OK
+      );
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
     }
   }
 
