@@ -13,6 +13,12 @@ import { generateReceiptCode } from '../utils/receiptCode';
 import Receipt from '../models/receipt.model';
 import { invoiceService } from '../service/invoice.service';
 
+interface InvoiceItem {
+  name: string;
+  qty: number;
+  unitPrice: number;
+}
+
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
     try {
@@ -38,7 +44,7 @@ export class InvoiceController {
           prisma.bankAccount.findFirst({
             where: {
               organizationId: orgId,
-              isDefault: true, 
+              isDefault: true,
             },
           }),
           prisma.organization.findUnique({
@@ -52,16 +58,18 @@ export class InvoiceController {
 
         const businessName = org?.name || 'Your Business';
         const msg = `
+        Payment Invoice for: ${businessName}
         Invoice: ${invoice.code}
-        Business: ${businessName}
-        Amount: ₦${invoice.total}
+        Invoice Amount: ₦${invoice.total}   
+        Items: ${((invoice.items as unknown as InvoiceItem[]) || [])
+          .map((item) => `${item.name} ${item.qty} - ₦${item.unitPrice}`)
+          .join('\n')}
         Pay to: ${bankLine}
-        Narration: ${invoice.code}
-        Confirm: ${(process.env.PUBLIC_APP_URL || '')}/invoice/${invoice.code}
+        Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${invoice.code}
         
         Powered by LeadsBox
         `;
-        
+
         await receiptService.sendWhatsAppText(contactPhone, msg);
       }
 
