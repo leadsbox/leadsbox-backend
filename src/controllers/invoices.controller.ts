@@ -52,15 +52,17 @@ export class InvoiceController {
 
         const businessName = org?.name || 'Your Business';
         const msg = `
-        Invoice ${invoice.code} for ${businessName}
-        Amount: ₦${(invoice.total / 100).toFixed(2)}
+        Invoice: ${invoice.code}
+        Business: ${businessName}
+        Amount: ₦${invoice.total}
         Pay to: ${bankLine}
         Narration: ${invoice.code}
-        Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${invoice.code}
-
-        Powered by LeadsBox`;
-        const sentToWhatsApp = await receiptService.sendWhatsAppText(contactPhone, msg);
-        console.log('sentToWhatsApp', sentToWhatsApp);
+        Confirm: ${(process.env.PUBLIC_APP_URL || '')}/invoice/${invoice.code}
+        
+        Powered by LeadsBox
+        `;
+        
+        await receiptService.sendWhatsAppText(contactPhone, msg);
       }
 
       ResponseUtils.success(
