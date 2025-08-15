@@ -164,12 +164,13 @@ class InvoiceService {
       // First find the invoice to get its ID
       const existingInvoice = await tx.invoice.findFirst({
         where: { code },
-        select: { id: true, organizationId: true },
+        select: { id: true, organizationId: true, total: true },
       });
 
       if (!existingInvoice) {
         throw new Error('Invoice not found');
       }
+      const total = existingInvoice?.total;
 
       const invoice = await tx.invoice.update({
         where: {
@@ -191,7 +192,7 @@ class InvoiceService {
         data: {
           organization: { connect: { id: invoice.organizationId } },
           invoice: { connect: { id: invoice.id } },
-          amount,
+          amount: total,
           receiptNumber: `RCPT-${Date.now()}`,
           sellerName: invoice.organization.name,
           buyerName: invoice.contactPhone || 'Customer',

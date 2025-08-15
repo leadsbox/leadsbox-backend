@@ -87,14 +87,10 @@ export class InvoiceController {
   public async confirmPayment(req: Request, res: Response): Promise<void> {
     try {
       const { code } = req.params;
-      const { orgId } = req.body;
+      const { orgId, amount } = req.body;
       console.log('orgId', orgId);
 
-      const invoice = await Invoice.findOneAndUpdate(
-        { code, orgId, status: { $in: ['sent', 'viewed'] } },
-        { status: 'pending_confirmation' },
-        { new: true }
-      );
+      const invoice = await invoiceService.confirmPayment(code, amount);
       console.log('invoice', invoice);
 
       if (!invoice) {
