@@ -4,8 +4,6 @@ import { Toolbox } from '../utils/tools';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
 import AuthValidations from '../validations/auth.validation';
-import { mongoose } from '../config/db';
-import { mongoUserService } from '../service/mongo';
 import { userService } from '../service/user.service';
 import { v4 as uuidv4 } from 'uuid';
 import { mailerService } from '../service/nodemailer';
@@ -160,21 +158,18 @@ class AuthController {
     }
 
     try {
-      const user = await mongoUserService.findOne({ email });
-      if (!user.status || !user.data) {
+      const user = await userService.findByEmail(email);
+      if (!user) {
         return ResponseUtils.error(res, 'User not found', StatusCode.NOT_FOUND);
       }
 
       const resetToken = await Toolbox.createToken({
-        userId: user.data._id?.toString(),
-        email: user.data.email,
-        username: user.data.username,
+        userId: user.id,
+        email: user.email,
+        username: user.username || '',
       });
 
-      await mongoUserService.updateOne(
-        { _id: user.data._id },
-        { token: resetToken }
-      );
+      await userService.update(user.id, { token: resetToken });
 
       const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
       const emailTemplate = `
@@ -222,7 +217,11 @@ class AuthController {
         );
       }
 
-      const userId = tokenPayload.userId;
+      const userId = tokenPayload.userId as string;
+      const user = await userService.findById(userId);
+      if (!user) {
+        return ResponseUtils.error(res, 'User not found', StatusCode.NOT_FOUND);
+      }
 
       const hashedPassword = CryptoUtils.hashPassword(newPassword);
 
@@ -236,22 +235,14 @@ class AuthController {
       };
 
       const newAuthToken = await Toolbox.createToken({
-        userId,
+        userId: user.userId,
         Auth,
       });
 
-      const updateResult = await mongoUserService.updateOne(
-        { _id: new mongoose.Types.ObjectId(userId) },
-        { password: hashedPassword, token: newAuthToken }
-      );
-
-      if (!updateResult.status) {
-        return ResponseUtils.error(
-          res,
-          'Failed to reset password',
-          StatusCode.BAD_REQUEST
-        );
-      }
+      await userService.update(user.id, {
+        password: hashedPassword,
+        token: newAuthToken,
+      });
 
       return ResponseUtils.success(
         res,

@@ -2,16 +2,14 @@ import { Request, Response } from 'express';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
 import { TelegramService } from '../service/telegram.service';
-import { LeadService } from '../service/leads.service';
+import { leadService } from '../service/leads.service';
 import { LeadCtrl } from './leads.controller';
 import { LeadLabel } from '../types/leads';
-import { mongoLeadService } from '../service/mongo';
 import { UserProvider } from '../types';
 import crypto from 'crypto';
 import { Toolbox } from '../utils/tools';
 import { CryptoUtils } from '../utils/crypto';
-import { mongoUserService } from '../service/mongo';
-import { mongoose } from '../config/db';
+import { userService } from '../service/user.service';
 
 class TelegramController {
   /**
@@ -39,20 +37,19 @@ class TelegramController {
         console.log('Determined tag:', tag);
 
         if (tag !== LeadLabel.NOT_A_LEAD) {
-          await mongoLeadService.create(
-            {
-              conversationId: chatId.toString(),
-              providerId: providerId.toString(),
-              provider: UserProvider.TELEGRAM,
-              transactions: [
-                {
-                  tag: tag,
-                  notes: text,
-                },
-              ],
-            },
-            { session: null }
+          const user = await userService.findByProvider(
+            UserProvider.TELEGRAM,
+            providerId.toString()
           );
+          if (user) {
+            await leadService.updateConversationTag(
+              chatId.toString(),
+              tag,
+              UserProvider.TELEGRAM,
+              providerId.toString(),
+              user.id
+            );
+          }
         }
 
         if (text.toLowerCase().includes('price')) {
@@ -127,20 +124,12 @@ class TelegramController {
       }
   
       try {
-        let existing = await mongoUserService.findOneMongo(
-          {
-            $or: [
-              { provider: UserProvider.TELEGRAM },
-              { providerId: id?.toString() },
-            ],
-          },
-          { session: null }
+        let user = await userService.findByProvider(
+          UserProvider.TELEGRAM,
+          (id as string) ?? ''
         );
-        console.log('Existing user:', existing);
-  
-        if (!existing.status || !existing.data) {
-          const _id = new mongoose.Types.ObjectId();
-  
+
+        if (!user) {
           const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
           const Auth = {
             PUBLIC_KEY,
@@ -150,33 +139,25 @@ class TelegramController {
             ),
           };
           const token = await Toolbox.createToken({
-            userId: _id.toString(),
-            email: null,
-            username: username,
-            provider: UserProvider.FACEBOOK,
+            userId: id?.toString() as string,
+            email: '',
+            username: username as string,
+            provider: UserProvider.TELEGRAM,
             Auth,
           });
-  
-          const createPayload = {
-            userId: _id.toString(),
-            username: (username || `${first_name}${last_name}`).toString(),
-            email: '',
-            provider: UserProvider.TELEGRAM,
-            token,
-            providerId: id?.toString(),
-          };
-          const created = await mongoUserService.updateOne(
-            { _id },
-            createPayload
+
+          user = await userService.upsertByProvider(
+            UserProvider.TELEGRAM,
+            id?.toString() as string,
+            {
+              userId: id?.toString() as string,
+              username: (username || `${first_name}${last_name}`).toString(),
+              email: '',
+              token,
+            }
           );
-          if (!created.status || !created.data) {
-            throw new Error('Failed to create Telegram user');
-          }
-          existing = created;
         }
-  
-        const userData = existing.data!;
-  
+
         const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
         const Auth = {
           PUBLIC_KEY,
@@ -186,18 +167,18 @@ class TelegramController {
           ),
         };
         const token = await Toolbox.createToken({
-          userId: userData.userId,
-          email: userData.email,
-          username: userData.username,
+          userId: user.userId,
+          email: user.email,
+          username: user.username || '',
           provider: UserProvider.TELEGRAM,
           Auth,
         });
-  
-        await mongoUserService.updateOne({ _id: userData._id }, { token });
-  
+
+        await userService.update(user.id, { token });
+
         return ResponseUtils.success(
           res,
-          { user: userData, token },
+          { user, token },
           'Telegram login successful',
           StatusCode.OK
         );
@@ -243,7 +224,7 @@ class TelegramController {
   }
 
   public async getAllLeads(req: Request, res: Response): Promise<void> {
-    const leads = await LeadService.getAllLeads();
+    const leads = await leadService.getAllLeads();
     return ResponseUtils.success(
       res,
       { leads },
@@ -264,7 +245,7 @@ class TelegramController {
     }
 
     try {
-      const leads = await LeadService.getLeadsByUserId(userId);
+      const leads = await leadService.getLeadsByUserId(userId);
       return ResponseUtils.success(
         res,
         { leads },

@@ -62,6 +62,7 @@ model Organization {
   bankAccounts BankAccount[]
   invoices     Invoice[]
   receipts     Receipt[]
+  paymentClaims PaymentClaim[]
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 }
@@ -103,6 +104,7 @@ model Invoice {
   total         Float
   status        InvoiceStatus @default(SENT)
   receipts      Receipt[]
+  paymentClaims PaymentClaim[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -121,6 +123,28 @@ model Receipt {
   buyerName     String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+model PaymentClaim {
+  id             String        @id @default(uuid())
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organizationId String
+  invoice        Invoice       @relation(fields: [invoiceId], references: [id])
+  invoiceId      String
+  amountClaimed  Float
+  refText        String?
+  payerBank      String?
+  payerName      String?
+  proofFileUrl   String?
+  source         String        @default("buyer")
+  status         String        @default("pending")
+  approvedBy     String?
+  approvedAt     DateTime?
+  rejectedBy     String?
+  rejectedAt     DateTime?
+  rejectionReason String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model Lead {

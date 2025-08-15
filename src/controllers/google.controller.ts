@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { Toolbox } from '../utils/tools';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
-import { mongoUserService } from '../service/mongo';
 import { UserProvider } from '../types';
 import axios from 'axios';
 class GoogleAuthController {

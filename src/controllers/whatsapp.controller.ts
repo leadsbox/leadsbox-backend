@@ -5,8 +5,9 @@ import { ResponseUtils } from '../utils/reponse';
 import crypto from 'crypto';
 import { WhatsappService } from '../service/whatsapp.service';
 import { LeadLabel } from '../types/leads';
-import { mongoLeadService } from '../service/mongo';
-import { UserProvider, UserType } from '../types';
+import { leadService } from '../service/leads.service';
+import { userService } from '../service/user.service';
+import { UserProvider } from '../types';
 import axios from 'axios';
 declare module 'express-serve-static-core' {
   interface Request {
@@ -91,17 +92,19 @@ class WhatsappController {
             console.log('Determined tag:', tag);
 
             if (tag !== LeadLabel.NOT_A_LEAD) {
-              await mongoLeadService.create({
-                conversationId: convId,
-                providerId: userId,
-                provider: UserProvider.WHATSAPP,
-                transactions: [
-                  {
-                    tag: tag,
-                    notes: text,
-                  },
-                ],
-              });
+              const user = await userService.findByProvider(
+                UserProvider.WHATSAPP,
+                userId
+              );
+              if (user) {
+                await leadService.updateConversationTag(
+                  convId,
+                  tag,
+                  UserProvider.WHATSAPP,
+                  userId,
+                  user.id
+                );
+              }
             }
           } catch (err) {
             console.error('Error tagging WhatsApp lead:', err);

@@ -1,111 +1,53 @@
 import { Request, Response } from 'express';
-import { Types } from 'mongoose';
-import Invoice from '../models/invoice.model';
-import Org from '../models/org.model';
-import PaymentClaim from '../models/paymentClaim.model';
-import OrgBankDetails from '../models/orgBankDetails.model';
-import { generateInvoiceCode } from '../utils/invoiceCode';
-import { sendWhatsAppText } from '../service/receipt.service';
+import { invoiceService } from '../service/invoice.service';
+import { receiptService, sendWhatsAppText } from '../service/receipt.service';
+import { paymentClaimService } from '../service/paymentClaim.service';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types';
-import { generateReceiptCode } from '../utils/receiptCode';
-import Receipt from '../models/receipt.model';
 
 export class InvoiceController {
   public async createInvoice(req: Request, res: Response): Promise<void> {
     try {
-      // const orgIdHeader = req.header('x-org-id');
-      // if (!orgIdHeader)
-      //   ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      // const orgId = new Types.ObjectId(orgIdHeader);
       const {
         orgId,
         items = [],
         currency = 'NGN',
-        autoSendTo,
         contactPhone,
+        autoSendTo,
         sendText,
       } = req.body || {};
 
-      const subtotal = items.reduce(
-        (s: number, it: any) => s + (it.qty ?? 1) * Number(it.unitPrice),
-        0
-      );
-      const total = subtotal;
-      let code: string;
-
-      // ensure uniqueness per org
-      while (true) {
-        code = generateInvoiceCode();
-        const exists = await Invoice.findOne({ orgId, code });
-        if (!exists) break;
-      }
-
-      const invoice = await Invoice.create({
+      const invoice = await invoiceService.create({
         orgId,
-        contactPhone,
-        code,
-        currency,
         items,
-        subtotal,
-        total,
-        status: 'sent',
+        currency,
+        contactPhone,
       });
 
-      // optionally auto-send (basic text MVP)
       if (autoSendTo && contactPhone && sendText) {
-        const bank = await OrgBankDetails.findOne({ orgId }).lean();
-        const bankLine = bank
-          ? `${bank.bankName} • ${bank.accountName} • ${bank.accountNumber}`
-          : 'your bank details';
-        const org = await Org.findById(orgId).lean();
-        const businessName = org?.name || 'Your Business';
-        const msg = `
-Invoice ${code} for ${businessName}
-Amount: ₦${total}
-Pay to: ${bankLine}
-Narration: ${code}
-Confirm: ${process.env.PUBLIC_APP_URL || ''}/invoice/${code}
-
-Powered by LeadsBox`;
-        const sentToWhatsApp = await sendWhatsAppText(contactPhone, msg);
-        console.log('sentToWhatsApp', sentToWhatsApp);
+        await sendWhatsAppText(contactPhone, sendText);
       }
 
-      res.json({ ok: true, invoice });
+      ResponseUtils.success(
+        res,
+        { invoice },
+        'Invoice created successfully',
+        StatusCode.CREATED
+      );
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
     }
   }
 
   public async confirmPayment(req: Request, res: Response): Promise<void> {
     try {
       const { code } = req.params;
-      const { orgId } = req.body;
-      console.log('orgId', orgId);
-
-      const invoice = await Invoice.findOneAndUpdate(
-        { code, orgId, status: { $in: ['sent', 'viewed'] } },
-        { status: 'pending_confirmation' },
-        { new: true }
-      );
-      console.log('invoice', invoice);
-
-      if (!invoice) {
-        ResponseUtils.error(
-          res,
-          'Invoice not found or already processed',
-          StatusCode.NOT_FOUND
-        );
-        return;
-      }
-
-      // TODO: Notify admin that a payment has been confirmed
-
+      const { amount } = req.body;
+      const result = await invoiceService.confirmPayment(code, Number(amount));
       ResponseUtils.success(
         res,
-        { invoice },
-        'Payment confirmation received. Awaiting verification.',
+        result,
+        'Payment confirmed successfully',
         StatusCode.OK
       );
     } catch (e: any) {
@@ -115,91 +57,41 @@ Powered by LeadsBox`;
 
   public async verifyPayment(req: Request, res: Response): Promise<void> {
     try {
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
+      }
       const { code } = req.params;
-      const { orgId } = req.body;
-
-      const invoice = await Invoice.findOneAndUpdate(
-        { code, orgId, status: 'pending_confirmation' },
-        { status: 'paid' },
-        { new: true }
+      const { amount } = req.body;
+      const result = await invoiceService.verifyPayment(
+        code,
+        Number(amount),
+        orgId
       );
-
-      if (!invoice) {
-        res
-          .status(404)
-          .json({ error: 'Invoice not found or not pending confirmation' });
-        return;
-      }
-
-      // Get business and customer info
-      const org = await Org.findById(orgId).lean();
-      const sellerName = org?.name || 'Your Business';
-
-      // Create receipt
-      const receipt = new Receipt({
-        orgId: invoice.orgId,
-        invoiceId: invoice._id,
-        receiptNumber: generateReceiptCode(),
-        amount: invoice.total,
-        sellerName,
-        buyerName: 'Customer',
-      });
-      await receipt.save();
-
-      // Generate receipt URL
-      const receiptUrl = `https://800281810a4d.ngrok-free.app/api/invoices/receipts/${receipt._id}`;
-
-      // Send WhatsApp with receipt info
-      if (invoice.contactPhone) {
-        const receiptMsg = `
-*Payment Receipt: ${receipt.receiptNumber}*
-
-Dear Customer,
-
-Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
-
-View your receipt: ${receiptUrl}
-
-Thank you for your business!
-
-Powered by LeadsBox`;
-        await sendWhatsAppText(invoice.contactPhone, receiptMsg);
-      }
-
-      res.json({
-        ok: true,
-        invoice,
-        receipt: {
-          id: receipt._id,
-          number: receipt.receiptNumber,
-          url: receiptUrl,
-        },
-      });
+      ResponseUtils.success(
+        res,
+        result,
+        'Payment verification result',
+        StatusCode.OK
+      );
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
     }
   }
 
   public async getInvoice(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
-      const invoice = await Invoice.findOne({
-        orgId,
-        code: req.params.code,
-      }).lean();
-      if (!invoice)
-        return ResponseUtils.error(
-          res,
-          'Invoice not found',
-          StatusCode.NOT_FOUND
-        );
-      const bank = await OrgBankDetails.findOne({ orgId }).lean();
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
+      }
+      const result = await invoiceService.getByCode(req.params.code, orgId);
+      if (!result) {
+        return ResponseUtils.error(res, 'Invoice not found', StatusCode.NOT_FOUND);
+      }
       ResponseUtils.success(
         res,
-        { invoice, bank },
+        result,
         'Invoice retrieved successfully',
         StatusCode.OK
       );
@@ -210,24 +102,18 @@ Powered by LeadsBox`;
 
   public async createClaim(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
-      const invoice = await Invoice.findOne({ orgId, code: req.params.code });
-      if (!invoice) {
-        ResponseUtils.error(res, 'Invoice not found', StatusCode.NOT_FOUND);
-        return;
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
       }
-      const claim = await PaymentClaim.create({
+      const claim = await paymentClaimService.createClaim({
         orgId,
-        invoiceId: invoice._id,
-        amountClaimed: Number(req.body.amount),
+        invoiceCode: req.params.code,
+        amount: Number(req.body.amount),
         refText: req.body.refText,
         payerBank: req.body.payerBank,
         payerName: req.body.payerName,
         proofFileUrl: req.body.proofFileUrl,
-        source: 'buyer',
       });
       ResponseUtils.success(
         res,
@@ -242,14 +128,11 @@ Powered by LeadsBox`;
 
   public async getVerifyQueue(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
-      const items = await PaymentClaim.find({ orgId, status: 'pending' })
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .lean();
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
+      }
+      const items = await paymentClaimService.getPendingClaims(orgId);
       ResponseUtils.success(
         res,
         { items },
@@ -261,114 +144,20 @@ Powered by LeadsBox`;
     }
   }
 
-  public async getReceipt(req: Request, res: Response): Promise<void> {
-    try {
-      const { receiptId } = req.params;
-      const receipt = await Receipt.findById(receiptId)
-        .populate('invoiceId', 'code')
-        .lean();
-
-      if (!receipt) {
-        ResponseUtils.error(res, 'Receipt not found', StatusCode.NOT_FOUND);
-        return;
-      }
-
-      ResponseUtils.success(
-        res,
-        {
-          receipt: {
-            ...receipt,
-            invoiceCode: (receipt as any).invoiceId?.code,
-          },
-        },
-        'Receipt retrieved successfully',
-        StatusCode.OK
-      );
-    } catch (e: any) {
-      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
-    }
-  }
-
   public async approveClaim(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
-      const claim = await PaymentClaim.findById(req.params.id);
-      if (!claim) {
-        ResponseUtils.error(res, 'Claim not found', StatusCode.NOT_FOUND);
-        return;
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
       }
-      if (claim.orgId.toString() !== orgId.toString()) {
-        ResponseUtils.error(res, 'Unauthorized', StatusCode.UNAUTHORIZED);
-        return;
-      }
-
-      await claim.updateOne({
-        status: 'approved',
+      const result = await paymentClaimService.approveClaim({
+        id: req.params.id,
+        orgId,
         approvedBy: req.body.approvedBy,
-        approvedAt: new Date(),
       });
-
-      const invoice = await Invoice.findById(claim.invoiceId);
-      if (!invoice) {
-        ResponseUtils.error(res, 'Invoice not found', StatusCode.NOT_FOUND);
-        return;
-      }
-
-      await invoice.updateOne({ status: 'paid' });
-
-      // Fetch seller and buyer names
-      const org = await Org.findById(orgId).lean();
-      const sellerName = org?.name || 'Your Business';
-
-      const contactPhone = invoice.contactPhone;
-      if (!contactPhone) {
-        console.warn('No contact phone found on invoice for notification');
-      }
-
-      // Create receipt
-      const receipt = await Receipt.create({
-        orgId: invoice.orgId,
-        invoiceId: invoice._id,
-        receiptNumber: generateReceiptCode(),
-        amount: invoice.total,
-        sellerName: org?.name || 'Your Business',
-        buyerName: 'Customer',
-        items: invoice.items,
-        paymentMethod: 'cash',
-        reference: 'cash',
-        status: 'completed',
-      });
-
-      // Send enhanced WhatsApp receipt
-      if (invoice.contactPhone) {
-        const receiptMsg = `
-*Payment Receipt: ${receipt.receiptNumber}*
-
-Dear Customer,
-
-Your payment of ₦${invoice.total} to ${sellerName} for invoice ${invoice.code} has been confirmed.
-
-Thank you for your business!
-
-Powered by LeadsBox`;
-        await sendWhatsAppText(invoice.contactPhone, receiptMsg);
-      }
-
-      // Generate the receipt URL
-      const receiptUrl = `https://800281810a4d.ngrok-free.app/api/invoices/receipts/${receipt._id}`;
-
       ResponseUtils.success(
         res,
-        {
-          ok: true,
-          receiptNumber: receipt.receiptNumber,
-          receiptUrl,
-          receiptId: receipt._id,
-          invoice: invoice,
-        },
+        result,
         'Payment verified and receipt sent successfully',
         StatusCode.OK
       );
@@ -379,30 +168,40 @@ Powered by LeadsBox`;
 
   public async rejectClaim(req: Request, res: Response): Promise<void> {
     try {
-      const orgIdHeader = req.header('x-org-id');
-      if (!orgIdHeader)
-        ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
-      const orgId = new Types.ObjectId(orgIdHeader);
-      const claim = await PaymentClaim.findById(req.params.id);
-      if (!claim) {
-        ResponseUtils.error(res, 'Claim not found', StatusCode.NOT_FOUND);
-        return;
+      const orgId = req.header('x-org-id');
+      if (!orgId) {
+        return ResponseUtils.error(res, 'Missing X-Org-Id', StatusCode.BAD_REQUEST);
       }
-      if (claim.orgId.toString() !== orgId.toString()) {
-        ResponseUtils.error(res, 'Unauthorized', StatusCode.UNAUTHORIZED);
-        return;
-      }
-
-      await claim.updateOne({
-        status: 'rejected',
+      const claim = await paymentClaimService.rejectClaim({
+        id: req.params.id,
+        orgId,
         rejectedBy: req.body.rejectedBy,
-        rejectedAt: new Date(),
         rejectionReason: req.body.rejectionReason,
       });
       ResponseUtils.success(
         res,
-        { ok: true },
+        { claim },
         'Claim rejected successfully',
+        StatusCode.OK
+      );
+    } catch (e: any) {
+      ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  public async getReceipt(req: Request, res: Response): Promise<void> {
+    try {
+      const receipt = await receiptService.getById(req.params.receiptId, {
+        invoice: true,
+        organization: true,
+      });
+      if (!receipt) {
+        return ResponseUtils.error(res, 'Receipt not found', StatusCode.NOT_FOUND);
+      }
+      ResponseUtils.success(
+        res,
+        { receipt },
+        'Receipt retrieved successfully',
         StatusCode.OK
       );
     } catch (e: any) {

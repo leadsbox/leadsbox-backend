@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
 import { ResponseUtils } from '../utils/reponse';
 import { StatusCode } from '../types/response';
-import { LeadService } from '../service/leads.service';
-import { LeadModel } from '../models/leads.model';
+import { leadService } from '../service/leads.service';
 import { LeadLabel } from '../types/leads';
 import LeadValidations from '../validations/lead.validation';
-import { mongoLeadService } from '../service/mongo';
-import { UserProvider } from '../types';
+import { userService } from '../service/user.service';
 
 class LeadController {
   /**
@@ -18,37 +16,37 @@ class LeadController {
       return ResponseUtils.error(res, validationResult, StatusCode.BAD_REQUEST);
     }
 
-    const { conversationId, tag, provider, providerId } = req.body;
+      const { conversationId, tag, provider, providerId } = req.body;
 
-    try {
-      const updatedLead = await mongoLeadService.updateOne(
-        { conversationId },
-        {
+      try {
+        const user = await userService.findByProvider(provider, providerId);
+        if (!user) {
+          return ResponseUtils.error(res, 'User not found', StatusCode.NOT_FOUND);
+        }
+
+        const lead = await leadService.updateConversationTag(
+          conversationId,
+          tag,
           provider,
           providerId,
-          transactions: [
-            {
-              tag: tag,
-            },
-          ],
-        }
-      );
-      return ResponseUtils.success(
-        res,
-        { updatedLead },
-        'Lead tag updated successfully',
-        StatusCode.OK
-      );
-    } catch (error: any) {
-      console.error('Error updating lead tag:', error);
-      return ResponseUtils.error(
-        res,
-        'Failed to update lead tag',
-        StatusCode.INTERNAL_SERVER_ERROR,
-        error.message || error
-      );
+          user.id
+        );
+        return ResponseUtils.success(
+          res,
+          { lead },
+          'Lead tag updated successfully',
+          StatusCode.OK
+        );
+      } catch (error: any) {
+        console.error('Error updating lead tag:', error);
+        return ResponseUtils.error(
+          res,
+          'Failed to update lead tag',
+          StatusCode.INTERNAL_SERVER_ERROR,
+          error.message || error
+        );
+      }
     }
-  }
 
   /**
    * Tag a conversation based on the message content.
@@ -195,7 +193,7 @@ class LeadController {
    */
   public async listLeads(req: Request, res: Response): Promise<void> {
     try {
-      const leads = await LeadService.getLeads();
+      const leads = await leadService.getLeads();
       return ResponseUtils.success(
         res,
         { leads },

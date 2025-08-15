@@ -1,64 +1,63 @@
-import { LeadModel } from '../models/leads.model';
+import { Prisma, prisma } from '../lib/db/prisma';
+import { UserProvider } from '../types';
 
-export class LeadService {
-  /**
-   * Updates or assigns a tag to a conversation (lead) identified by conversationId.
-   */
-  public static async updateConversationTag(
+class LeadService {
+  async updateConversationTag(
     conversationId: string,
-    tag: string
-  ): Promise<any> {
-    try {
-      const updatedLead = await LeadModel.findOneAndUpdate(
-        { conversationId },
-        { tag },
-        { new: true }
-      );
-      return updatedLead;
-    } catch (error) {
-      console.error('Error in updateConversationTag:', error);
-      throw error;
-    }
+    tag: string,
+    provider: UserProvider,
+    providerId: string,
+    userId: string
+  ) {
+    return prisma.lead.upsert({
+      where: { provider_providerId: { provider, providerId } },
+      update: {
+        conversationId,
+        transactions: {
+          create: {
+            amount: 0,
+            currency: 'NGN',
+            status: tag,
+            type: 'TAG',
+          },
+        },
+      },
+      create: {
+        conversationId,
+        provider,
+        providerId,
+        user: { connect: { id: userId } },
+        transactions: {
+          create: {
+            amount: 0,
+            currency: 'NGN',
+            status: tag,
+            type: 'TAG',
+          },
+        },
+      },
+      include: { transactions: true },
+    });
   }
 
-  /**
-   * Alias for updateConversationTag so your controller can call updateLeadTag.
-   */
-  public static async updateLeadTag(
-    conversationId: string,
-    tag: string
-  ): Promise<any> {
-    return this.updateConversationTag(conversationId, tag);
+  async getLeads() {
+    return prisma.lead.findMany({ include: { transactions: true } });
   }
 
-  /**
-   * Retrieves all leads (conversation records) from the database.
-   */
-  public static async getLeads(): Promise<any[]> {
-    try {
-      return await LeadModel.find({});
-    } catch (error) {
-      console.error('Error in getLeads:', error);
-      throw error;
-    }
+  async getAllLeads() {
+    return prisma.lead.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { transactions: true },
+    });
   }
 
-  public static async getAllLeads(): Promise<any> {
-    try {
-      return await LeadModel.find({}).sort({ createdAt: -1 }).lean();
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      throw error;
-    }
+  async getLeadsByUserId(userId: string) {
+    return prisma.lead.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: { transactions: true },
+    });
   }
-
-  public static async getLeadsByUserId(userId: string): Promise<any[]> {
-    try {
-      return await LeadModel.find({ userId }).sort({ createdAt: -1 }).lean();
-    } catch (error) {
-      console.error('Error fetching leads for user:', error);
-      throw error;
-    }
-  }
-
 }
+
+export const leadService = new LeadService();
