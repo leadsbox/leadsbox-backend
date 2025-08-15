@@ -183,8 +183,11 @@ class OrganizationService {
     userId: string
   ): Promise<BankAccount> {
     // Verify user has permission to add bank accounts
-    await this.verifyUserAccess(orgId, userId, ['ADMIN', 'OWNER']);
-
+    const verify = await this.verifyUserAccess(orgId, userId, [
+      'ADMIN',
+      'OWNER',
+    ]);
+    console.log('verify:::', verify);
     // If setting as default, unset any existing default
     if (data.isDefault) {
       await prisma.bankAccount.updateMany({
@@ -282,22 +285,34 @@ class OrganizationService {
     userId: string,
     requiredRoles: UserRole[] = [UserRole.MEMBER]
   ): Promise<Organization> {
+    // First check if user is the owner
+    const isOwner = await prisma.organization.findFirst({
+      where: {
+        id: orgId,
+        ownerId: userId,
+      },
+    });
+
+    // If user is the owner, they have full access
+    if (isOwner) {
+      return await prisma.organization.findFirstOrThrow({
+        where: { id: orgId },
+        include: OrgIncludeFull,
+      });
+    }
+
+    // If not owner, check member roles
     const org = await prisma.organization.findFirst({
       where: {
         id: orgId,
-        OR: [
-          { ownerId: userId },
-          {
-            members: {
-              some: {
-                userId,
-                role: { in: requiredRoles }, // enum array, not strings
-              },
-            },
+        members: {
+          some: {
+            userId,
+            role: { in: requiredRoles },
           },
-        ],
+        },
       },
-      include: OrgIncludeFull, // must match the Organization alias
+      include: OrgIncludeFull,
     });
 
     if (!org) throw new Error('Organization not found or access denied');
