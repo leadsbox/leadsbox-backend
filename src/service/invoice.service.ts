@@ -1,4 +1,10 @@
-import { InvoiceStatus, Prisma, prisma } from '../lib/db/prisma';
+import {
+  InvoiceStatus,
+  Prisma,
+  prisma,
+  BotInvoice,
+  BotInvoiceStatus,
+} from '../lib/db/prisma';
 import { generateInvoiceCode } from '../utils/invoiceCode';
 
 // Define types based on Prisma schema
@@ -276,3 +282,69 @@ class InvoiceService {
 }
 
 export const invoiceService = new InvoiceService();
+
+/**
+ * Create a simple draft invoice used by the WhatsApp bot
+ */
+export async function createDraftInvoice(data: {
+  amount: number;
+  customerName: string;
+  customerPhone: string;
+}): Promise<BotInvoice> {
+  const count = await prisma.botInvoice.count();
+  const invoiceCode = `INV-${String(count + 1).padStart(4, '0')}`;
+  return prisma.botInvoice.create({
+    data: {
+      amount: data.amount,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      status: BotInvoiceStatus.PENDING,
+      invoiceCode,
+    },
+  });
+}
+
+/**
+ * Mark an invoice as paid by its code
+ */
+export async function markInvoicePaid(
+  invoiceCode: string
+): Promise<BotInvoice | null> {
+  try {
+    return await prisma.botInvoice.update({
+      where: { invoiceCode },
+      data: { status: BotInvoiceStatus.PAID, paidAt: new Date() },
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * List recent unpaid invoices
+ */
+export async function listUnpaidInvoices(
+  limit = 5
+): Promise<BotInvoice[]> {
+  return prisma.botInvoice.findMany({
+    where: { status: BotInvoiceStatus.PENDING },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+}
+
+/**
+ * Mark an invoice as paid based on customer phone number
+ */
+export async function markInvoicePaidByPhone(
+  customerPhone: string
+): Promise<BotInvoice | null> {
+  const invoice = await prisma.botInvoice.findFirst({
+    where: { customerPhone, status: BotInvoiceStatus.PENDING },
+  });
+  if (!invoice) return null;
+  return prisma.botInvoice.update({
+    where: { id: invoice.id },
+    data: { status: BotInvoiceStatus.PAID, paidAt: new Date() },
+  });
+}
