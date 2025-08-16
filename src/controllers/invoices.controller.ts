@@ -75,14 +75,22 @@ export class InvoiceController {
         `;
 
         await receiptService.sendWhatsAppText(contactPhone, msg);
-      }
+        const html = generateInvoiceHtml({
+          code: invoice.code,
+          amount: invoice.total,
+          currency: invoice.currency,
+          status: invoice.status,
+          date: invoice.createdAt || new Date(),
+          buyerName: invoice.contactPhone || 'Customer',
+        });
 
-      ResponseUtils.success(
-        res,
-        { invoice },
-        'Invoice created successfully',
-        StatusCode.OK
-      );
+        ResponseUtils.success(
+          res,
+          { invoice, html },
+          'Invoice created successfully',
+          StatusCode.OK
+        );
+      }
     } catch (e: any) {
       ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
     }
