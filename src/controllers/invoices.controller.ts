@@ -90,7 +90,7 @@ export class InvoiceController {
       const { orgId, amount } = req.body;
       console.log('orgId', orgId);
 
-      const invoice = await invoiceService.confirmPayment(code, amount);
+      const invoice = await invoiceService.confirmPayment(code);
       console.log('invoice', invoice);
 
       if (!invoice) {
