@@ -72,18 +72,25 @@ class InvoiceService {
   }): Promise<InvoiceWithRelations> {
     const { orgId, items, currency = 'NGN' } = data;
 
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { id: true },
+    });
+    if (!org) {
+      throw new Error('Organization not found');
+    }
+
     const subtotal = items.reduce(
       (sum, item) => sum + item.qty * item.unitPrice,
       0
     );
-    const total = subtotal; // add tax/discount logic later if needed
+    const total = subtotal;
 
-    // Generate unique invoice code within an organization
     let code: string;
     while (true) {
       code = generateInvoiceCode();
       const exists = await prisma.invoice.findFirst({
-        where: { organizationId: orgId, code }, // <-- use organizationId
+        where: { organizationId: orgId, code },
         select: { id: true },
       });
       if (!exists) break;
@@ -157,12 +164,13 @@ class InvoiceService {
       // First find the invoice to get its ID
       const existingInvoice = await tx.invoice.findFirst({
         where: { code },
-        select: { id: true, organizationId: true },
+        select: { id: true, organizationId: true, total: true },
       });
 
       if (!existingInvoice) {
         throw new Error('Invoice not found');
       }
+      const total = existingInvoice?.total;
 
       const invoice = await tx.invoice.update({
         where: {
@@ -184,7 +192,7 @@ class InvoiceService {
         data: {
           organization: { connect: { id: invoice.organizationId } },
           invoice: { connect: { id: invoice.id } },
-          amount,
+          amount: total,
           receiptNumber: `RCPT-${Date.now()}`,
           sellerName: invoice.organization.name,
           buyerName: invoice.contactPhone || 'Customer',

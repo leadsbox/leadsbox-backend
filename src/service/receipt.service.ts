@@ -194,7 +194,7 @@ View your receipt: ${receiptUrl}
   /**
    * Send a simple WhatsApp text message
    */
-  async sendWhatsAppText(to: string, text: string): Promise<void> {
+  async sendWhatsAppText(to: string, text: string): Promise<any> {
     const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
 
@@ -219,10 +219,23 @@ View your receipt: ${receiptUrl}
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`WhatsApp API error: ${JSON.stringify(errorData)}`);
+      const bodyText = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(bodyText);
+      } catch {
+        data = bodyText;
       }
+
+      if (!response.ok) {
+        throw new Error(
+          `WhatsApp API error: ${
+            typeof data === 'string' ? data : JSON.stringify(data)
+          }`
+        );
+      }
+
+      return data; // <-- now you get a value in sentToWhatsApp
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw error;
