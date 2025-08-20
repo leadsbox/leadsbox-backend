@@ -8,13 +8,6 @@ import { LeadLabel } from '../types/leads';
 import { mongoLeadService } from '../service/mongo';
 import { UserProvider, UserType } from '../types';
 import axios from 'axios';
-import {
-  createDraftInvoice,
-  listUnpaidInvoices,
-  markInvoicePaid,
-  markInvoicePaidByPhone,
-} from '../service/invoice.service';
-import { sendWhatsAppText } from '../service/receipt.service';
 declare module 'express-serve-static-core' {
   interface Request {
     rawBody?: Buffer;
@@ -93,72 +86,7 @@ class WhatsappController {
         }
 
         if (text) {
-          const trimmed = text.trim();
-          const upper = trimmed.toUpperCase();
-
           try {
-            if (upper.startsWith('NEW INVOICE')) {
-              const match = trimmed.match(/^NEW INVOICE\s+(\d+(?:\.\d+)?)\s+(.+)/i);
-              if (match) {
-                const amount = parseFloat(match[1]);
-                const customerName = match[2].trim();
-                const invoice = await createDraftInvoice({
-                  amount,
-                  customerName,
-                  customerPhone: userId,
-                });
-                await sendWhatsAppText(
-                  userId,
-                  `Draft invoice ${invoice.invoiceCode} created for ${invoice.customerName} with amount ${invoice.amount}.`
-                );
-              } else {
-                await sendWhatsAppText(
-                  userId,
-                  'Usage: NEW INVOICE <amount> <customer_name>'
-                );
-              }
-              continue;
-            }
-
-            if (upper.startsWith('PAID ')) {
-              const parts = trimmed.split(/\s+/);
-              const code = parts[1];
-              const invoice = await markInvoicePaid(code);
-              const msgText = invoice
-                ? `Invoice ${code} marked as paid.`
-                : `Invoice ${code} not found.`;
-              await sendWhatsAppText(userId, msgText);
-              continue;
-            }
-
-            if (upper === 'UNPAID') {
-              const invoices = await listUnpaidInvoices();
-              if (!invoices.length) {
-                await sendWhatsAppText(userId, 'No unpaid invoices.');
-              } else {
-                const lines = invoices
-                  .map(
-                    (inv) =>
-                      `${inv.invoiceCode} - ${inv.customerName} (${inv.amount})`
-                  )
-                  .join('\n');
-                await sendWhatsAppText(
-                  userId,
-                  `Unpaid invoices:\n${lines}`
-                );
-              }
-              continue;
-            }
-
-            if (upper === 'PAID') {
-              const invoice = await markInvoicePaidByPhone(userId);
-              const msgText = invoice
-                ? `Thanks ${invoice.customerName}, payment received for invoice ${invoice.invoiceCode}.`
-                : 'No pending invoice found.';
-              await sendWhatsAppText(userId, msgText);
-              continue;
-            }
-
             const tag = await LeadCtrl.tagConversation(text);
             console.log('Determined tag:', tag);
 
@@ -176,7 +104,7 @@ class WhatsappController {
               });
             }
           } catch (err) {
-            console.error('Error processing WhatsApp message:', err);
+            console.error('Error tagging WhatsApp lead:', err);
           }
         }
       }
@@ -188,7 +116,7 @@ class WhatsappController {
   public startLogin(req: Request, res: Response): void {
     const state = crypto.randomBytes(16).toString('hex');
     const redirectUri =
-      'https://https://13f1-102-90-102-138.ngrok-free.app/api/auth/whatsapp/callback';
+    'https://800281810a4d.ngrok-free.app/api/provider/whatsapp/callback';
 
     res.cookie('wa_oauth_state', state, { httpOnly: true, secure: true });
 
