@@ -8,7 +8,7 @@ export class FollowUpService {
    */
   public static async scheduleTelegramFollowUp(
     chatId: number | string,
-    followUpTime: string,
+    followUpTime: string
   ): Promise<any> {
     try {
       const followUp = await FollowUpModel.create({

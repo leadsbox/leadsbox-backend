@@ -29,6 +29,11 @@ enum InvoiceStatus {
   VOID
 }
 
+enum BotInvoiceStatus {
+  PENDING
+  PAID
+}
+
 // Models
 model User {
   id                    String               @id @default(uuid())
@@ -162,4 +167,15 @@ model WhatsAppConnection {
   updatedAt     DateTime @updatedAt
 
   @@unique([userId, wabaId, phoneNumberId])
+}
+
+model BotInvoice {
+  id            String           @id @default(uuid())
+  amount        Float
+  customerName  String
+  customerPhone String
+  status        BotInvoiceStatus @default(PENDING)
+  invoiceCode   String           @unique
+  paidAt        DateTime?
+  createdAt     DateTime         @default(now())
 }

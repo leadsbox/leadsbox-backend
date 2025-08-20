@@ -12,6 +12,10 @@ import { prisma } from '../lib/db/prisma';
 import { generateReceiptCode } from '../utils/receiptCode';
 import Receipt from '../models/receipt.model';
 import { invoiceService } from '../service/invoice.service';
+import {
+  generateInvoiceHtml,
+  generateReceiptHtml,
+} from '../utils/documentTemplates';
 
 interface InvoiceItem {
   name: string;
@@ -71,14 +75,22 @@ export class InvoiceController {
         `;
 
         await receiptService.sendWhatsAppText(contactPhone, msg);
-      }
+        const html = generateInvoiceHtml({
+          code: invoice.code,
+          amount: invoice.total,
+          currency: invoice.currency,
+          status: invoice.status,
+          date: invoice.createdAt || new Date(),
+          buyerName: invoice.contactPhone || 'Customer',
+        });
 
-      ResponseUtils.success(
-        res,
-        { invoice },
-        'Invoice created successfully',
-        StatusCode.OK
-      );
+        ResponseUtils.success(
+          res,
+          { invoice, html },
+          'Invoice created successfully',
+          StatusCode.OK
+        );
+      }
     } catch (e: any) {
       ResponseUtils.error(res, e.message, StatusCode.INTERNAL_SERVER_ERROR);
     }
@@ -90,7 +102,7 @@ export class InvoiceController {
       const { orgId, amount } = req.body;
       console.log('orgId', orgId);
 
-      const invoice = await invoiceService.confirmPayment(code, amount);
+      const invoice = await invoiceService.confirmPayment(code);
       console.log('invoice', invoice);
 
       if (!invoice) {
@@ -199,9 +211,17 @@ Powered by LeadsBox`;
           StatusCode.NOT_FOUND
         );
       const bank = await OrgBankDetails.findOne({ orgId }).lean();
+      const html = generateInvoiceHtml({
+        code: invoice.code,
+        amount: invoice.total,
+        currency: invoice.currency,
+        status: invoice.status,
+        date: invoice.createdAt || new Date(),
+        buyerName: invoice.contactPhone || 'Customer',
+      });
       ResponseUtils.success(
         res,
-        { invoice, bank },
+        { invoice, bank, html },
         'Invoice retrieved successfully',
         StatusCode.OK
       );
@@ -275,6 +295,15 @@ Powered by LeadsBox`;
         return;
       }
 
+      const html = generateReceiptHtml({
+        amount: receipt.amount,
+        currency: 'NGN',
+        date: receipt.createdAt,
+        sellerName: receipt.sellerName,
+        buyerName: receipt.buyerName,
+        receiptNumber: receipt.receiptNumber,
+        sessionId: receipt._id.toString(),
+      });
       ResponseUtils.success(
         res,
         {
@@ -282,6 +311,7 @@ Powered by LeadsBox`;
             ...receipt,
             invoiceCode: (receipt as any).invoiceId?.code,
           },
+          html,
         },
         'Receipt retrieved successfully',
         StatusCode.OK
