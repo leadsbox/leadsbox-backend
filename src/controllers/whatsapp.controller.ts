@@ -5,8 +5,8 @@ import { ResponseUtils } from '../utils/reponse';
 import crypto from 'crypto';
 import { WhatsappService } from '../service/whatsapp.service';
 import { LeadLabel } from '../types/leads';
-import { mongoLeadService } from '../service/mongo';
-import { UserProvider, UserType } from '../types';
+import { UserProvider } from '../types';
+import { prisma } from '../lib/db/prisma';
 import axios from 'axios';
 declare module 'express-serve-static-core' {
   interface Request {
@@ -77,10 +77,11 @@ class WhatsappController {
         if (!msg) continue;
 
         const text = msg.text?.body;
-        const userId = msg.from;
+        const senderId = msg.from;
         const convId = msg.id;
+        const phoneNumberId = change.value.metadata?.phone_number_id;
 
-        if (!userId) {
+        if (!senderId) {
           console.error('User ID missing on WhatsApp message');
           continue;
         }
@@ -91,16 +92,52 @@ class WhatsappController {
             console.log('Determined tag:', tag);
 
             if (tag !== LeadLabel.NOT_A_LEAD) {
-              await mongoLeadService.create({
-                conversationId: convId,
-                providerId: userId,
-                provider: UserProvider.WHATSAPP,
-                transactions: [
-                  {
-                    tag: tag,
-                    notes: text,
+              const connection = phoneNumberId
+                ? await prisma.whatsAppConnection.findFirst({
+                    where: { phoneNumberId },
+                  })
+                : null;
+
+              if (!connection) {
+                console.error(
+                  'No WhatsApp connection found for phone number',
+                  phoneNumberId
+                );
+                continue;
+              }
+
+              await prisma.lead.upsert({
+                where: {
+                  provider_providerId: {
+                    provider: UserProvider.WHATSAPP,
+                    providerId: senderId,
                   },
-                ],
+                },
+                update: {
+                  conversationId: convId,
+                  transactions: {
+                    create: {
+                      amount: 0,
+                      status: tag,
+                      type: tag,
+                      metadata: { notes: text },
+                    },
+                  },
+                },
+                create: {
+                  conversationId: convId,
+                  provider: UserProvider.WHATSAPP,
+                  providerId: senderId,
+                  userId: connection.userId,
+                  transactions: {
+                    create: {
+                      amount: 0,
+                      status: tag,
+                      type: tag,
+                      metadata: { notes: text },
+                    },
+                  },
+                },
               });
             }
           } catch (err) {
@@ -273,7 +310,7 @@ class WhatsappController {
     };
 
     try {
-      await WhatsappService.saveConnection({
+      const connection = await WhatsappService.saveConnection({
         userId,
         wabaId,
         phoneNumberId: phoneId,
@@ -283,7 +320,7 @@ class WhatsappController {
 
       return ResponseUtils.success(
         res,
-        null,
+        connection,
         'WhatsApp account linked',
         StatusCode.OK
       );
