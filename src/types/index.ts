@@ -5,4 +5,4 @@ export * from './mongo'
 export * from './provider'
 export * from './response'
 export * from './user';
-export * from './whatsapp'
+// NOTE: WhatsApp types are now provided by Prisma

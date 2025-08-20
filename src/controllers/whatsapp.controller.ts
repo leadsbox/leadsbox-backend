@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { WhatsappService } from '../service/whatsapp.service';
 import { LeadLabel } from '../types/leads';
 import { mongoLeadService } from '../service/mongo';
-import { UserProvider, UserType } from '../types';
+import { UserProvider } from '../types';
 import axios from 'axios';
 declare module 'express-serve-static-core' {
   interface Request {
@@ -273,7 +273,7 @@ class WhatsappController {
     };
 
     try {
-      await WhatsappService.saveConnection({
+      const connection = await WhatsappService.saveConnection({
         userId,
         wabaId,
         phoneNumberId: phoneId,
@@ -283,7 +283,7 @@ class WhatsappController {
 
       return ResponseUtils.success(
         res,
-        null,
+        connection,
         'WhatsApp account linked',
         StatusCode.OK
       );
