@@ -406,6 +406,7 @@ curl --location --request POST 'http://YOUR_NEW_NGROK_URL/api/invoices/:invoice_
 5. Click on the verify and save button
 6. Subscribe to all he webhook events
 7. You would get a response in your terminal -> ✅ WhatsApp webhook verified
+8. On the FB Dashboard subscribe to the messages action, this would help to automatically track messages and trigger invoices, etc when a some certain aspects are created
 
 
 ### WhatsApp Integration Flow
