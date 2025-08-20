@@ -10,7 +10,7 @@ const ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN;
 
 if (!PAGE_ID || !ACCESS_TOKEN) {
   throw new Error(
-    'INSTAGRAM_PAGE_ID and IG_ACCESS_TOKEN must be set in the environment variables.',
+    'INSTAGRAM_PAGE_ID and IG_ACCESS_TOKEN must be set in the environment variables.'
   );
 }
 
@@ -38,7 +38,7 @@ export class InstagramService {
    */
   public static async sendReply(
     conversationId: string,
-    message: string,
+    message: string
   ): Promise<any> {
     try {
       const url = `${BASE_URL}/${conversationId}/messages`;

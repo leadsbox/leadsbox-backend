@@ -156,7 +156,7 @@ class InvoiceService {
    * Confirm payment for an invoice
    */
   async confirmPayment(
-    code: string,
+    code: string
   ): Promise<{ invoice: Invoice; receipt: Receipt }> {
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Update invoice status

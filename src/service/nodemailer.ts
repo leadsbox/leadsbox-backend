@@ -16,7 +16,7 @@ export class MailerService {
   public async sendMail(
     to: string,
     subject: string,
-    html: string,
+    html: string
   ): Promise<void> {
     try {
       await this.transporter.sendMail({
