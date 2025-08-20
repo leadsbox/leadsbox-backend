@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { WhatsappConnection } from '../models/whatsappConnection.model';
-import { WhatsappConnectionType } from '../types';
+import { prisma, WhatsAppConnection } from '../lib/db/prisma';
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 
@@ -40,15 +39,17 @@ export class WhatsappService {
     phoneNumberId,
     accessToken,
   }: {
-    userId?: string;
+    userId: string;
     wabaId: string;
     phoneNumberId: string;
     accessToken: string;
-  }): Promise<WhatsappConnectionType> {
-    return WhatsappConnection.findOneAndUpdate(
-      { userId, wabaId, phoneNumberId },
-      { accessToken },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+  }): Promise<WhatsAppConnection> {
+    return prisma.whatsAppConnection.upsert({
+      where: {
+        userId_wabaId_phoneNumberId: { userId, wabaId, phoneNumberId },
+      },
+      update: { accessToken },
+      create: { userId, wabaId, phoneNumberId, accessToken },
+    });
   }
 }
