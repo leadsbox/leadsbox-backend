@@ -116,7 +116,7 @@ class WhatsappController {
   public startLogin(req: Request, res: Response): void {
     const state = crypto.randomBytes(16).toString('hex');
     const redirectUri =
-    'https://800281810a4d.ngrok-free.app/api/provider/whatsapp/callback';
+    'https://54d5b8218d94.ngrok-free.app/api/provider/whatsapp/callback';
 
     res.cookie('wa_oauth_state', state, { httpOnly: true, secure: true });
 
