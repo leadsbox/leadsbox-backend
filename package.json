@@ -11,7 +11,7 @@
     "test:single": "yarn node --experimental-vm-modules $(yarn bin jest) $1",
     "webhook": "node src/utils/telegramwebhook.js",
     "build": "prisma generate && tsc",
-    "start": "node dist/app.js",
+    "start": "yarn migrate:deploy && node dist/app.js",
     "migrate:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate"
   },
