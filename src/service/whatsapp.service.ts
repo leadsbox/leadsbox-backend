@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { prisma, WhatsAppConnection } from '../lib/db/prisma';
+import { prisma } from '../lib/db/prisma';
+import { WhatsAppConnection } from '../generated/prisma';
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
 
