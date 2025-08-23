@@ -69,7 +69,7 @@ class GoogleAuthController {
     });
 
     console.log('Set-Cookie header:', res.getHeader('Set-Cookie'));
-    res.redirect(`${process.env.FRONTEND_ORIGIN}/dashboard`);
+    res.redirect(`${process.env.PUBLIC_APP_URL}/dashboard`);
   }
 }
 
