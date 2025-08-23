@@ -67,6 +67,10 @@ app.get('/api/debug/wa', (_req, res) => {
   });
 });
 
+app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
+});
+
 app.use('/api/leads', leadsRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/auth', authRoutes);

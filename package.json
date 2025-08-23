@@ -5,13 +5,15 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon src/app.ts",
-    "build": "tsc",
-    "start": "node dist/app.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "test:ci": "jest --runInBand",
     "test:single": "yarn node --experimental-vm-modules $(yarn bin jest) $1",
-    "webhook": "node src/utils/telegramwebhook.js"
+    "webhook": "node src/utils/telegramwebhook.js",
+    "build": "prisma generate && tsc",
+    "start": "node dist/app.js",
+    "migrate:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@joi/date": "^2.1.1",

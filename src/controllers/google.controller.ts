@@ -69,7 +69,7 @@ class GoogleAuthController {
     });
 
     console.log('Set-Cookie header:', res.getHeader('Set-Cookie'));
-    res.redirect('http://localhost:3000');
+    res.redirect(`${process.env.FRONTEND_ORIGIN}/dashboard`);
   }
 }
 
