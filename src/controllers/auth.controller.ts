@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { mailerService } from '../service/nodemailer';
 import { UserProvider } from '../types';
 import { AuthRequest } from '../middleware/auth.middleware';
+import jwt from 'jsonwebtoken';
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
@@ -307,6 +308,104 @@ class AuthController {
     } catch (err) {
       console.error('ME error:', err);
       res.status(500).json({ message: 'Failed to load profile' });
+    }
+  }
+
+  public async refresh(req: Request, res: Response): Promise<void> {
+    try {
+      const fromCookie = (req.cookies?.leadsbox_token as string) || undefined;
+      const fromHeader =
+        (req.headers.authorization || '').replace(/^Bearer\s+/i, '') ||
+        undefined;
+      const existing = fromCookie || fromHeader;
+      if (!existing) {
+        res.status(401).json({ message: 'No session' });
+        return;
+      }
+
+      let payload: any;
+      try {
+        payload = jwt.verify(existing, process.env.JWT_SECRET!);
+      } catch {
+        res.status(401).json({ message: 'Invalid or expired token' });
+        return;
+      }
+
+      // Ensure user still exists
+      const u = await userService.findByUserId(payload.userId);
+      if (!u) {
+        res.status(401).json({ message: 'User not found' });
+        return;
+      }
+
+      // Rotate token (preserve fields you already embed)
+      const newToken = await Toolbox.createToken({
+        userId: u.userId,
+        email: u.email,
+        username: u.username || '',
+        provider: u.provider,
+        Auth: payload?.Auth, // keep existing Auth bundle if you include it
+      });
+
+      // Best-effort: persist new token if you store it
+      try {
+        await userService.update(u.id, { token: newToken });
+      } catch (_) {
+        // ignore if your storage is stateless
+      }
+
+      res.cookie('leadsbox_token', newToken, {
+        httpOnly: true,
+        secure: true, // required with SameSite=None
+        sameSite: 'none', // cross-site (ngrok API <-> localhost FE)
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      res.status(204).end();
+    } catch (err) {
+      console.error('Refresh error:', err);
+      res.status(500).json({ message: 'Failed to refresh session' });
+    }
+  }
+
+  public async logout(req: Request, res: Response): Promise<void> {
+    try {
+      const fromCookie = (req.cookies?.leadsbox_token as string) || undefined;
+      const fromHeader =
+        (req.headers.authorization || '').replace(/^Bearer\s+/i, '') ||
+        undefined;
+      const tok = fromCookie || fromHeader;
+
+      if (tok) {
+        try {
+          const decoded: any = jwt.decode(tok);
+          const userId = decoded?.userId;
+          if (userId) {
+            const u = await userService.findByUserId(userId);
+            if (u) {
+              try {
+                await userService.update(u.id, { token: null });
+              } catch (_) {
+                // ignore if you don't persist token
+              }
+            }
+          }
+        } catch (_) {
+          // ignore decode errors; still clear cookie
+        }
+      }
+
+      res.clearCookie('leadsbox_token', {
+        path: '/',
+        sameSite: 'none',
+        secure: true,
+      });
+
+      res.status(204).end();
+    } catch (err) {
+      console.error('Logout error:', err);
+      res.status(500).json({ message: 'Failed to logout' });
     }
   }
 }
