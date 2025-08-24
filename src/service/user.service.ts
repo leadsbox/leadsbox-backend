@@ -1,16 +1,6 @@
-import { Prisma, prisma } from '../lib/db/prisma';
+import { prisma } from '../lib/db/prisma';
 import { UserProvider } from '../types';
-
-// Define the User type with related fields
-type User = Prisma.UserGetPayload<{
-  include?: {
-    organizations?: true;
-    organizationMemberships?: true;
-    ownedOrganizations?: true;
-    whatsAppConnections?: true;
-    leads?: true;
-  };
-}>;
+import { User } from '../generated/prisma';
 
 class UserService {
   /**
@@ -78,7 +68,7 @@ class UserService {
   /**
    * Create a new user
    */
-  async create(data: Prisma.UserCreateInput): Promise<User> {
+  async create(data: any): Promise<User> {
     return prisma.user.create({
       data,
     });
@@ -87,7 +77,7 @@ class UserService {
   /**
    * Update a user
    */
-  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
+  async update(id: string, data: any): Promise<User> {
     return prisma.user.update({
       where: { id },
       data,
@@ -109,7 +99,7 @@ class UserService {
   async upsertByProvider(
     provider: UserProvider,
     providerId: string,
-    data: Prisma.UserCreateInput
+    data: any
   ): Promise<User> {
     return prisma.user.upsert({
       where: {
