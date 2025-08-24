@@ -120,7 +120,6 @@ passport.use(
         if (!user) {
           const userId = uuidv4();
 
-          // Keep this token COMPACT (cookie-safe). Don’t embed big blobs/keys.
           const token = await Toolbox.createToken({
             userId,
             email,
@@ -133,8 +132,8 @@ passport.use(
             userId,
             username,
             email,
-            password: null, // social login
-            token: token, // if you keep a token column
+            password: null, 
+            token: token,
             provider,
             providerId,
             profileImage,
@@ -175,7 +174,7 @@ passport.use(
           email: user.email,
           username: user.username,
           provider,
-          token: sessionToken, // cookie-safe JWT
+          token: sessionToken,
           profileImage: user.profileImage || profileImage,
         });
       } catch (err) {
