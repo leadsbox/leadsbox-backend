@@ -19,7 +19,7 @@ import orgRoutes from './routes/org.routes';
 
 const app = express();
 const corsOptions = {
-  origin: 'https://a2a7b30154d5.ngrok-free.app', // Allow the frontend domain
+  origin: 'https://leadsbox-frontend.onrender.com', // Allow the frontend domain
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
   credentials: true, // Enable cookies
