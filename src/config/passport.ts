@@ -1,4 +1,4 @@
-import passport from 'passport';
+import passport, { Profile } from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { UserModel } from '../models/user.model';
 import { UserProvider } from '../types';
@@ -9,8 +9,9 @@ import {
 } from '../service/mongo';
 import { Toolbox } from '../utils/tools';
 import { CryptoUtils } from '../utils/crypto';
-import { mongoose } from './db';
+import { v4 as uuidv4 } from 'uuid';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { userService } from '../service/user.service';
 
 passport.serializeUser((user: any, done) => {
   done(null, user.id);
@@ -79,93 +80,105 @@ passport.use(
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: process.env.GOOGLE_REDIRECT_URI as string,
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: process.env.GOOGLE_REDIRECT_URI!,
     },
-
-    async (accessToken, _refreshToken, profile, done) => {
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI as string;
-
+    // VERIFY CALLBACK — persists user in Postgres via Prisma userService
+    async (
+      accessToken: string,
+      _refreshToken: string,
+      profile: Profile,
+      done
+    ) => {
       try {
-        const email = profile.emails?.[0]?.value;
-        if (!email) return done(new Error('No email returned'), false);
-        console.log('Email:', email);
-        const profileImage = profile.photos?.[0]?.value;
+        const email = profile.emails?.[0]?.value?.toLowerCase();
+        if (!email)
+          return done(new Error('No email returned from Google'), false);
 
-        let existingUser = await mongoUserService.findOneMongo(
-          {
-            $or: [
-              { provider: UserProvider.GOOGLE, providerId: profile.id },
-              { email },
-            ],
-          },
-          { session: null }
-        );
-        if (!existingUser.status || !existingUser.data) {
-          const _id = new mongoose.Types.ObjectId();
+        const provider = UserProvider.GOOGLE;
+        const providerId = profile.id;
+        const username = (profile.displayName || email.split('@')[0] || 'user')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const profileImage = profile.photos?.[0]?.value || null;
 
+        // 1) Try provider match first, then email fallback
+        let user =
+          (await userService.findByProvider(provider, providerId)) ||
+          (await userService.findByEmail(email));
+
+        // 2) Create if missing
+        if (!user) {
+          const userId = uuidv4();
+
+          // If you store per-user keys in Postgres, generate & encrypt them
           const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
-          const Auth = {
-            PUBLIC_KEY,
-            ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
-              PRIVATE_KEY,
-              process.env.JWT_SECRET as string
-            ),
-          };
-
-          const token = await Toolbox.createToken({
-            userId: _id.toString(),
-            email,
-            username: profile.displayName || email.split('@')[0],
-            provider: UserProvider.GOOGLE,
-            Auth,
-          });
-
-          const createPayload = {
-            userId: _id.toString(),
-            username: profile.displayName || email.split('@')[0],
-            email,
-            provider: UserProvider.GOOGLE,
-            token,
-            providerId: profile.id,
-            profileImage,
-          };
-
-          const creation = await mongoUserService.updateOne(
-            { _id },
-            createPayload
-          );
-          if (!creation.status || !creation.data) {
-            throw new Error('Failed to create Google user');
-          }
-          existingUser = creation;
-        }
-        const userData = existingUser.data!;
-        const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
-        const Auth = {
-          PUBLIC_KEY,
-          ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+          const ENCRYPTED_PRIVATE_KEY = CryptoUtils.encrypt(
             PRIVATE_KEY,
             process.env.JWT_SECRET as string
-          ),
-        };
-        const token = await Toolbox.createToken({
-          userId: userData.userId,
-          email: userData.email,
-          username: userData.username,
-          provider: userData.provider,
-          Auth,
+          );
+
+          // Keep this token COMPACT (cookie-safe). Don’t embed big blobs/keys.
+          const appToken = await Toolbox.createToken({
+            userId,
+            email,
+            username,
+            provider,
+          });
+
+          user = await userService.create({
+            userId,
+            username,
+            email,
+            password: null, // social login
+            token: appToken, // if you keep a token column
+            provider,
+            providerId,
+            profileImage,
+            // store keys if your schema has these columns:
+            PUBLIC_KEY,
+            ENCRYPTED_PRIVATE_KEY,
+          });
+        } else {
+          // 3) Backfill/refresh fields if user existed by email
+          const patch: any = {};
+          if (!user.providerId) {
+            patch.providerId = providerId;
+            patch.provider = provider;
+          }
+          if (!user.profileImage && profileImage) {
+            patch.profileImage = profileImage;
+          }
+          if (Object.keys(patch).length > 0) {
+            user = await userService.update(user.id, patch);
+          }
+        }
+
+        // 4) Rotate a COMPACT session token for the cookie
+        const sessionToken = await Toolbox.createToken({
+          userId: user.userId,
+          email: user.email,
+          username: user.username || '',
+          provider,
         });
-        await mongoUserService.updateOne({ _id: userData._id }, { token });
-        const userWithToken = {
-          ...userData,
-          token,
-          PUBLIC_KEY,
-        };
-        return done(null, userWithToken);
+
+        // Optionally persist latest session token in DB
+        try {
+          await userService.update(user.id, { token: sessionToken });
+        } catch {}
+
+        // 5) Hand minimal info to controller (googleCallback will set cookie)
+        return done(null, {
+          userId: user.userId,
+          email: user.email,
+          username: user.username,
+          provider,
+          token: sessionToken, // cookie-safe JWT
+          profileImage: user.profileImage || profileImage,
+        });
       } catch (err) {
-        console.error('Google auth error:', err);
+        console.error('Google auth (Prisma) error:', err);
         return done(err as Error, false);
       }
     }
