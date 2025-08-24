@@ -1,4 +1,5 @@
-import { Prisma, prisma } from '../lib/db/prisma';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../lib/db/prisma';
 import { generateReceiptCode } from '../utils/receiptCode';
 import type { Receipt } from './invoice.service';
 

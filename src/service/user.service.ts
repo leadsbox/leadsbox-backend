@@ -1,6 +1,6 @@
 import { prisma } from '../lib/db/prisma';
 import { UserProvider } from '../types';
-import { User } from '../generated/prisma';
+import type { User } from '@prisma/client';
 
 class UserService {
   /**
