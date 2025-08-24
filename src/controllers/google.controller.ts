@@ -69,6 +69,7 @@ class GoogleAuthController {
       path: '/',
       maxAge: 24 * 60 * 60 * 1000,
     });
+    console.log('[GoogleCallback] New cookie set:', user.token);
 
     // 4) Go back to FE
     res.redirect(`${process.env.PUBLIC_APP_URL}/dashboard`);

@@ -272,9 +272,10 @@ class AuthController {
     }
   }
 
-  public async me(req: Request, res: Response): Promise<void> {
+  public async me(req: AuthRequest, res: Response): Promise<void> {
     try {
       const authReq = req as AuthRequest;
+      console.log('[Me] Authenticated user:', authReq.user);
       const raw = authReq.user;
 
       if (!raw) {
@@ -290,19 +291,14 @@ class AuthController {
         undefined;
       const accessToken = cookieToken || headerToken;
 
-      // Sanitize user object (only expose what FE needs)
-      const user = {
-        id: raw.id ?? raw._id ?? undefined,
-        userId: raw.userId,
-        email: raw.email,
-        username: raw.username ?? null,
-        name: raw.name ?? raw.username ?? null,
-        provider: raw.provider ?? null,
-        profileImage: raw.profileImage ?? null,
-        orgId: raw.orgId ?? null,
-        createdAt: raw.createdAt ?? null,
-        updatedAt: raw.updatedAt ?? null,
-      };
+      const user = await userService.findByUserId(raw.userId);
+      if (!user) {
+        return ResponseUtils.error(
+          res,
+          'User not found',
+          StatusCode.UNAUTHORIZED
+        );
+      }
 
       res.status(200).json({ user, accessToken });
     } catch (err) {

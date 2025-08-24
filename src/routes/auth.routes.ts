@@ -26,7 +26,7 @@ router.get('/check-token', tokenController.checkToken);
 
 router.get('/me', authMiddleware, AuthCtrl.me);
 
-router.post('/refresh', (req, res) => AuthCtrl.refresh(req, res));
-router.post('/logout', (req, res) => AuthCtrl.logout(req, res));
+router.post('/refresh', AuthCtrl.refresh);
+router.post('/logout', AuthCtrl.logout);
 
 export default router;
