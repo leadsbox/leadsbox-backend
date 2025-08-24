@@ -1,4 +1,5 @@
-import { InvoiceStatus, Prisma, prisma } from '../lib/db/prisma';
+import { InvoiceStatus, Prisma } from '@prisma/client';
+import { prisma } from '../lib/db/prisma';
 import { generateInvoiceCode } from '../utils/invoiceCode';
 
 // Define types based on Prisma schema

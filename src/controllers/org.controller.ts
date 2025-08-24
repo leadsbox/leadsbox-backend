@@ -148,7 +148,7 @@ export class OrgController {
       if (
         !org ||
         (org.ownerId !== user.id &&
-          !org.members.some((m: any) => m.userId === user.id))
+          !org.members.some((m: { userId: string }) => m.userId === user.id))
       ) {
         return ResponseUtils.error(
           res,

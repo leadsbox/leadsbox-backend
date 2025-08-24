@@ -1,4 +1,5 @@
-import { Prisma, prisma, UserRole } from '../lib/db/prisma';
+import { Prisma, UserRole } from '@prisma/client';
+import { prisma } from '../lib/db/prisma';
 
 const OrgIncludeFull = {
   owner: true,
