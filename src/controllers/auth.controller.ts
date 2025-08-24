@@ -290,6 +290,7 @@ class AuthController {
         (req.headers.authorization || '').replace(/^Bearer\s+/i, '') ||
         undefined;
       const accessToken = cookieToken || headerToken;
+      console.log('[Me] Access token:', accessToken);
 
       const user = await userService.findByUserId(raw.userId);
       if (!user) {
