@@ -14,6 +14,8 @@ class GoogleAuthController {
       res.cookie('ga_oauth_state', state, {
         httpOnly: true,
         sameSite: 'lax',
+        secure: true,
+        path: '/',
         maxAge: 10 * 60_000,
       });
       console.log('[GoogleLogin] New state generated:', state);
@@ -41,34 +43,34 @@ class GoogleAuthController {
   }
 
   public async googleCallback(req: Request, res: Response): Promise<void> {
-    const user = req.user as any;
+    // 1) CSRF check for OAuth
+    const stateFromQuery = (req.query.state || '') as string;
+    const stateFromCookie = req.cookies?.ga_oauth_state || '';
+    if (!stateFromQuery || stateFromQuery !== stateFromCookie) {
+      return res.redirect(
+        `${process.env.PUBLIC_APP_URL}/login?error=bad_state`
+      );
+    }
+    res.clearCookie('ga_oauth_state', { path: '/' });
 
-    // If no token, redirect to login
+    // 2) user comes from your strategy (unchanged)
+    const user = req.user as any;
     if (!user?.token) {
       return res.redirect(
-        'http://localhost:3000/login?error=google_auth_failed'
+        `${process.env.PUBLIC_APP_URL}/login?error=google_auth_failed`
       );
     }
 
-    // Build the cookie string — first-party context on the API domain
-    // const isProd = process.env.NODE_ENV === 'dev';
-    // const parts = [
-    //   `leadsbox_token=${user.token}`,
-    //   `Path=/`,
-    //   `Max-Age=${24 * 60 * 60}`, // 1 day
-    //   isProd ? `Secure` : ``,
-    //   isProd ? `SameSite=None` : `SameSite=Lax`,
-    // ].filter(Boolean);
-
+    // 3) Issue the httpOnly session cookie for the API origin
     res.cookie('leadsbox_token', user.token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: true, // required with SameSite=None
+      sameSite: 'none', // cross-site (ngrok API <-> localhost FE)
       path: '/',
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    console.log('Set-Cookie header:', res.getHeader('Set-Cookie'));
+    // 4) Go back to FE
     res.redirect(`${process.env.PUBLIC_APP_URL}/dashboard`);
   }
 }

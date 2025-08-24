@@ -10,6 +10,7 @@ import { userService } from '../service/user.service';
 import { v4 as uuidv4 } from 'uuid';
 import { mailerService } from '../service/nodemailer';
 import { UserProvider } from '../types';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 class AuthController {
   public async register(req: Request, res: Response): Promise<void> {
@@ -267,6 +268,45 @@ class AuthController {
         StatusCode.INTERNAL_SERVER_ERROR,
         error.message || error
       );
+    }
+  }
+
+  public async me(req: Request, res: Response): Promise<void> {
+    try {
+      const authReq = req as AuthRequest;
+      const raw = authReq.user;
+
+      if (!raw) {
+        res.status(401).json({ message: 'Unauthenticated' });
+        return;
+      }
+
+      // Prefer cookie (session) token; fallback to bearer if present
+      const cookieToken =
+        (req.cookies && (req.cookies.leadsbox_token as string)) || undefined;
+      const headerToken =
+        (req.headers.authorization || '').replace(/^Bearer\s+/i, '') ||
+        undefined;
+      const accessToken = cookieToken || headerToken;
+
+      // Sanitize user object (only expose what FE needs)
+      const user = {
+        id: raw.id ?? raw._id ?? undefined,
+        userId: raw.userId,
+        email: raw.email,
+        username: raw.username ?? null,
+        name: raw.name ?? raw.username ?? null,
+        provider: raw.provider ?? null,
+        profileImage: raw.profileImage ?? null,
+        orgId: raw.orgId ?? null,
+        createdAt: raw.createdAt ?? null,
+        updatedAt: raw.updatedAt ?? null,
+      };
+
+      res.status(200).json({ user, accessToken });
+    } catch (err) {
+      console.error('ME error:', err);
+      res.status(500).json({ message: 'Failed to load profile' });
     }
   }
 }

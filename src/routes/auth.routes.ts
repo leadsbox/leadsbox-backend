@@ -3,6 +3,8 @@ import passport from 'passport';
 import { AuthCtrl } from '../controllers/auth.controller';
 import { GoogleAuthCtrl } from '../controllers/google.controller';
 import { tokenController } from '../controllers';
+import authMiddleware from '../middleware/auth.middleware';
+import { userService } from '../service/user.service';
 
 const router = Router();
 
@@ -21,5 +23,7 @@ router.get(
 );
 
 router.get('/check-token', tokenController.checkToken);
+
+router.get('/me', authMiddleware, AuthCtrl.me);
 
 export default router;
