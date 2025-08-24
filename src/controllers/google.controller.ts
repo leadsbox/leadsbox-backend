@@ -55,6 +55,7 @@ class GoogleAuthController {
 
     // 2) user comes from your strategy (unchanged)
     const user = req.user as any;
+    console.log('[GoogleCallback] User:', user);
     if (!user?.token) {
       return res.redirect(
         `${process.env.PUBLIC_APP_URL}/login?error=google_auth_failed`
