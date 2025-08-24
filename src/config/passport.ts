@@ -125,7 +125,7 @@ passport.use(
             email,
             username,
             provider,
-            Auth,
+            // Auth,
           });
 
           user = await userService.create({
@@ -137,7 +137,7 @@ passport.use(
             provider,
             providerId,
             profileImage,
-            Auth,
+            // Auth,
           });
         } else {
           // 3) Backfill/refresh fields if user existed by email
@@ -160,7 +160,7 @@ passport.use(
           email: user.email,
           username: user.username || '',
           provider,
-          Auth,
+          // Auth,
         });
 
         // Optionally persist latest session token in DB
