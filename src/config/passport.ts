@@ -102,6 +102,14 @@ passport.use(
           .replace(/\s+/g, ' ')
           .trim();
         const profileImage = profile.photos?.[0]?.value || null;
+        const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
+        const Auth = {
+          PUBLIC_KEY,
+          ENCRYPTED_PRIVATE_KEY: CryptoUtils.encrypt(
+            PRIVATE_KEY,
+            process.env.JWT_SECRET as string
+          ),
+        };
 
         // 1) Try provider match first, then email fallback
         let user =
@@ -112,19 +120,13 @@ passport.use(
         if (!user) {
           const userId = uuidv4();
 
-          // If you store per-user keys in Postgres, generate & encrypt them
-          const { PUBLIC_KEY, PRIVATE_KEY } = CryptoUtils.generateUserKeyPair();
-          const ENCRYPTED_PRIVATE_KEY = CryptoUtils.encrypt(
-            PRIVATE_KEY,
-            process.env.JWT_SECRET as string
-          );
-
           // Keep this token COMPACT (cookie-safe). Don’t embed big blobs/keys.
-          const appToken = await Toolbox.createToken({
+          const token = await Toolbox.createToken({
             userId,
             email,
             username,
             provider,
+            Auth,
           });
 
           user = await userService.create({
@@ -132,13 +134,11 @@ passport.use(
             username,
             email,
             password: null, // social login
-            token: appToken, // if you keep a token column
+            token: token, // if you keep a token column
             provider,
             providerId,
             profileImage,
-            // store keys if your schema has these columns:
-            PUBLIC_KEY,
-            ENCRYPTED_PRIVATE_KEY,
+            Auth,
           });
         } else {
           // 3) Backfill/refresh fields if user existed by email
@@ -161,6 +161,7 @@ passport.use(
           email: user.email,
           username: user.username || '',
           provider,
+          Auth,
         });
 
         // Optionally persist latest session token in DB
