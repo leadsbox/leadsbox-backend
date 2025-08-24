@@ -44,6 +44,7 @@ const authMiddleware: RequestHandler = async (
       ...user,
       userId: payload.userId,
     };
+    console.log('[AuthMiddleware] Authenticated user:', user)
 
     next(); // continue
   } catch (err) {
