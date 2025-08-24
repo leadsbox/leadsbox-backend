@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/prisma';
 
 // Extend the NodeJS global type with our prisma client
 declare global {
@@ -25,7 +25,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Export all Prisma types and utilities
-export type { Prisma } from '@prisma/client';
+export type { Prisma } from '../../generated/prisma';
 
 // Export a function to disconnect Prisma (useful for testing)
 export const disconnect = async (): Promise<void> => {
@@ -33,4 +33,4 @@ export const disconnect = async (): Promise<void> => {
 };
 
 // Re-export all types from @prisma/client
-export * from '@prisma/client';
+export * from '../../generated/prisma';
